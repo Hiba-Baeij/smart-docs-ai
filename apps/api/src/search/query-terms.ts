@@ -1,0 +1,118 @@
+import { normalizeSearchText } from './normalize-search-text';
+
+/**
+ * Words that carry no topic in a question, so they must not decide what a search returns: the
+ * question words, prepositions, pronouns and conjunctions of Arabic and English. Kept short on
+ * purpose; a long list starts to remove words that matter.
+ */
+const STOP_WORDS = new Set(
+  [
+    // Arabic
+    'ما',
+    'ماذا',
+    'من',
+    'متى',
+    'اين',
+    'أين',
+    'كيف',
+    'كم',
+    'هل',
+    'لماذا',
+    'في',
+    'على',
+    'إلى',
+    'الى',
+    'عن',
+    'مع',
+    'هو',
+    'هي',
+    'هم',
+    'هذا',
+    'هذه',
+    'ذلك',
+    'تلك',
+    'التي',
+    'الذي',
+    'أن',
+    'ان',
+    'كان',
+    'كانت',
+    'يكون',
+    'أو',
+    'او',
+    'ثم',
+    'قد',
+    'كل',
+    'عند',
+    'لدى',
+    'ليس',
+    'إذا',
+    'اذا',
+    'لكن',
+    'يتم',
+    'تم',
+    'يمكن',
+    'هناك',
+    'أيضا',
+    'ايضا',
+    'حتى',
+    'خلال',
+    'بين',
+    // English
+    'what',
+    'is',
+    'the',
+    'a',
+    'an',
+    'of',
+    'to',
+    'for',
+    'in',
+    'on',
+    'and',
+    'or',
+    'how',
+    'do',
+    'does',
+    'are',
+    'was',
+    'were',
+    'when',
+    'which',
+    'who',
+    'why',
+    'can',
+    'i',
+    'my',
+    'our',
+    'your',
+    'we',
+    'be',
+    'been',
+    'by',
+    'with',
+    'from',
+    'that',
+    'this',
+    'it',
+    'as',
+    'at',
+    'if',
+    'must',
+    'should',
+    'long',
+    'often',
+    'much',
+    'many',
+  ].map(normalizeSearchText),
+);
+
+/** Letters, digits and the marks attached to them; everything else separates words. */
+export function tokenize(text: string): string[] {
+  return text.split(/[^\p{L}\p{N}\p{M}]+/u).filter((token) => token !== '');
+}
+
+/** Compared after normalising, so a stop word is recognised however it is spelled. */
+export function isStopWord(token: string): boolean {
+  return STOP_WORDS.has(normalizeSearchText(token));
+}

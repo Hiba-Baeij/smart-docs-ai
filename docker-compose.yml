@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: smartdocs
+      POSTGRES_PASSWORD: smartdocs
+      # Creates the app database on first start; the init script adds smartdocs_test.
+      POSTGRES_DB: smartdocs
+    ports:
+      # Loopback only: the dev password is weak, so never expose it to the network.
+      # Host port 5433: 5432 is commonly taken by a host-installed PostgreSQL.
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - smartdocs-db:/var/lib/postgresql/data
+      - ./docker/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartdocs -d smartdocs"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  smartdocs-db:

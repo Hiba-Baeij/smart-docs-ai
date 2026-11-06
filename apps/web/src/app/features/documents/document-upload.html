@@ -1,0 +1,74 @@
+<section
+  class="upload"
+  [class.dragging]="dragging()"
+  aria-labelledby="upload-heading"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave()"
+  (drop)="onDrop($event)"
+>
+  <span class="drop-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 16V4M7 9l5-5 5 5" />
+      <path d="M5 15v4h14v-4" />
+    </svg>
+  </span>
+  <div class="upload-body">
+    <h2 id="upload-heading">{{ locale.t('docs.upload.title') }}</h2>
+    <p>{{ locale.t('docs.upload.drop') }}</p>
+
+    <div class="field">
+      <label for="document-file">{{ locale.t('docs.upload.types') }}</label>
+      <input
+        id="document-file"
+        type="file"
+        accept=".pdf,.docx,.xlsx"
+        [disabled]="busy()"
+        [attr.aria-busy]="busy()"
+        (change)="onSelect($event)"
+      />
+    </div>
+
+    <!-- Announced politely when it changes, so a screen reader user knows what the wait is. -->
+    <div class="status" role="status" aria-live="polite">
+      @switch (phase()) {
+        @case ('uploading') {
+          <p>
+            {{ locale.t('docs.upload.uploading') }} <bdi>{{ fileName() }}</bdi
+            >… {{ progress() }}%
+          </p>
+          <progress
+            [value]="progress()"
+            max="100"
+            [attr.aria-label]="locale.t('docs.upload.uploading') + ' ' + fileName()"
+          ></progress>
+        }
+        @case ('processing') {
+          <p>
+            <span class="spinner" aria-hidden="true"></span>{{ locale.t('docs.upload.processing') }}
+            <bdi>{{ fileName() }}</bdi
+            >… {{ locale.t('docs.upload.processingHint') }}
+          </p>
+        }
+        @case ('done') {
+          <p class="done">
+            <bdi>{{ fileName() }}</bdi> {{ locale.t('docs.upload.success') }}
+          </p>
+        }
+      }
+    </div>
+
+    @if (failure(); as problem) {
+      <div class="failure" role="alert">
+        <p>
+          <bdi>{{ fileName() }}</bdi> {{ locale.t('docs.upload.failure') }}
+        </p>
+        <p class="reason">{{ problem.message }}</p>
+        @if (problem.reference) {
+          <p class="reference">
+            {{ locale.t('docs.upload.reference') }} <bdi>{{ problem.reference }}</bdi>
+          </p>
+        }
+      </div>
+    }
+  </div>
+</section>

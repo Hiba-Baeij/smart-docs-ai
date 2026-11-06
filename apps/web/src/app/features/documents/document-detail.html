@@ -1,0 +1,81 @@
+<p><a class="back" routerLink="/documents">↩ {{ locale.t('docs.detail.back') }}</a></p>
+
+@switch (view()) {
+  @case ('loading') {
+    <p class="loading" role="status">{{ locale.t('docs.detail.loading') }}</p>
+  }
+  @case ('error') {
+    <app-error-banner [error]="error()!" (retry)="load()" />
+  }
+  @case ('notFound') {
+    <app-empty-state [message]="alreadyGone() ? locale.t('docs.detail.gone') : locale.t('docs.detail.missing')" />
+  }
+  @case ('loaded') {
+    @if (detail(); as doc) {
+      <header class="heading">
+        <h1 dir="auto">{{ doc.originalName }}</h1>
+        <dl class="facts">
+          <div><dt>{{ locale.t('docs.type') }}</dt><dd>{{ doc.fileType.toUpperCase() }}</dd></div>
+          <div><dt>{{ locale.t('docs.uploaded') }}</dt><dd>{{ formatDate(doc.createdAt) }}</dd></div>
+          <div><dt>{{ locale.t('docs.status') }}</dt><dd><app-status-badge [state]="state()!" /></dd></div>
+          <div><dt>{{ locale.t('docs.chunks') }}</dt><dd>{{ doc.chunkCount }}</dd></div>
+        </dl>
+        @if (note(); as text) { <p class="note" role="status">{{ text }}</p> }
+      </header>
+
+      @if (doc.extractedText) {
+        <section aria-labelledby="text-heading">
+          <h2 id="text-heading">{{ locale.t('docs.detail.text') }}</h2>
+          <pre class="text" dir="auto">{{ visibleText() }}</pre>
+          @if (textIsCut()) {
+            <button type="button" class="link" (click)="toggleText()">
+              {{ showAllText() ? locale.t('docs.detail.showLess') : locale.t('docs.detail.showAll') + ' ' + doc.extractedText.length + ' ' + locale.t('docs.detail.characters') }}
+            </button>
+          }
+        </section>
+      }
+
+      @if (doc.chunks.length > 0) {
+        <section aria-labelledby="chunks-heading">
+          <h2 id="chunks-heading">{{ locale.t('docs.chunks') }}</h2>
+          <table>
+            <caption class="visually-hidden">{{ locale.t('docs.detail.chunkCaption') }}</caption>
+            <thead><tr><th scope="col" class="number">#</th><th scope="col">{{ locale.t('docs.detail.where') }}</th><th scope="col">{{ locale.t('docs.detail.preview') }}</th></tr></thead>
+            <tbody>
+              @for (chunk of doc.chunks; track chunk.chunkIndex) {
+                <tr>
+                  <td class="number">{{ chunk.chunkIndex + 1 }}</td>
+                  <td>
+                    @if (chunk.pageNumber !== null) { {{ locale.t('docs.detail.page') }} {{ chunk.pageNumber }} }
+                    @else if (chunk.sheetName !== null) { {{ locale.t('docs.detail.sheet') }} <bdi>{{ chunk.sheetName }}</bdi> }
+                    @else { — }
+                  </td>
+                  <td class="preview" dir="auto">{{ chunk.preview }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      }
+
+      <section class="danger" aria-labelledby="delete-heading">
+        <h2 id="delete-heading">{{ locale.t('docs.detail.delete') }}</h2>
+        @if (!confirming()) {
+          <button type="button" class="delete" (click)="askToDelete()">{{ locale.t('docs.detail.deleteAction') }}</button>
+        } @else {
+          <div class="confirm" role="alertdialog" aria-labelledby="confirm-text" (keydown.escape)="cancelDelete()">
+            <p id="confirm-text">
+              {{ locale.t('docs.detail.confirmStart') }} “<bdi>{{ doc.originalName }}</bdi>” {{ locale.t('docs.detail.confirmMiddle') }}
+              {{ doc.chunkCount === 1 ? '1 ' + locale.t('docs.detail.chunk') : doc.chunkCount + ' ' + locale.t('docs.detail.chunks') }}? {{ locale.t('docs.detail.confirmEnd') }}
+            </p>
+            @if (deleteFailure(); as problem) { <p class="failure" role="alert">{{ problem }}</p> }
+            <button type="button" class="delete" [disabled]="deleting()" [attr.aria-busy]="deleting()" (click)="confirmDelete()">
+              {{ deleting() ? locale.t('docs.detail.deleting') : locale.t('docs.detail.confirm') }}
+            </button>
+            <button type="button" [disabled]="deleting()" (click)="cancelDelete()">{{ locale.t('docs.detail.cancel') }}</button>
+          </div>
+        }
+      </section>
+    }
+  }
+}

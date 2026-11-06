@@ -1,0 +1,88 @@
+.shell-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 2rem;
+  padding: 0.85rem clamp(1rem, 3vw, 2.5rem);
+  border-block-end: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 2px 14px hsl(220 30% 10% / 0.04);
+}
+.brand {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+nav {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+nav a {
+  padding: 0.55rem 0.85rem;
+  border-radius: 0.65rem;
+  color: var(--text-muted);
+  font-weight: 650;
+  text-decoration: none;
+}
+nav a:hover,
+nav a.active {
+  background: var(--surface-muted);
+  color: var(--accent);
+}
+.account {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-inline-start: auto;
+}
+.user-name {
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 650;
+}
+.sign-out {
+  min-height: 2.75rem;
+  padding-inline: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+  background: var(--surface-raised);
+  cursor: pointer;
+}
+.sign-out:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+.shell-main {
+  width: min(100%, 88rem);
+  margin-inline: auto;
+  padding: clamp(1rem, 3vw, 2.5rem);
+}
+@media (max-width: 700px) {
+  .shell-header {
+    gap: 0.6rem;
+  }
+  .brand {
+    width: 100%;
+  }
+  .account {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .user-name {
+    display: none;
+  }
+  nav {
+    order: 3;
+    width: 100%;
+  }
+  nav a {
+    flex: 1;
+    text-align: center;
+  }
+}

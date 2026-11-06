@@ -1,0 +1,198 @@
+.auth-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(25rem, 1fr);
+  min-height: 100dvh;
+}
+.auth-story {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(2rem, 5vw, 5rem);
+  color: #ecfaff;
+  background:
+    radial-gradient(circle at 76% 35%, hsl(268 82% 37% / 0.55), transparent 35%),
+    radial-gradient(circle at 15% 90%, hsl(188 96% 42% / 0.35), transparent 38%), #0b1028;
+}
+.auth-story::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  opacity: 0.22;
+  background-image:
+    linear-gradient(hsl(190 100% 88% / 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(190 100% 88% / 0.18) 1px, transparent 1px);
+  background-size: 3rem 3rem;
+  mask-image: linear-gradient(to bottom, transparent, black);
+}
+.story-brand {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.story-brand span {
+  color: #67e8f9;
+}
+.story-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 36rem;
+  margin-block: auto;
+}
+.story-kicker {
+  color: #67e8f9;
+  font-size: 0.75rem;
+  letter-spacing: 0.22em;
+  font-weight: 800;
+}
+.story-copy h2 {
+  margin: 1.2rem 0;
+  font-size: clamp(2.5rem, 5vw, 5rem);
+  line-height: 1.06;
+  letter-spacing: -0.055em;
+}
+.story-copy p {
+  max-width: 30rem;
+  font-size: 1.1rem;
+  color: #c5d3ea;
+}
+.story-orbit {
+  position: absolute;
+  width: 25rem;
+  aspect-ratio: 1;
+  inset: auto -8rem -10rem auto;
+  border: 1px solid hsl(188 100% 70% / 0.35);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 4rem hsl(188 100% 70% / 0.05),
+    0 0 0 8rem hsl(267 100% 70% / 0.04);
+}
+.auth-page {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: clamp(1rem, 3vw, 2.5rem);
+  background: var(--page);
+}
+.auth-top {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-height: 3rem;
+}
+.mobile-brand {
+  display: none;
+  font-weight: 800;
+  text-decoration: none;
+}
+.auth-card {
+  width: min(100%, 29rem);
+  margin: auto;
+  padding-block: 3rem;
+}
+.auth-card h1 {
+  margin: 0;
+  font-size: clamp(2rem, 3vw, 2.75rem);
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+}
+.auth-subtitle {
+  margin: 0.75rem 0 2rem;
+  color: var(--text-muted);
+}
+.field {
+  margin-block-end: 1.15rem;
+}
+.field label {
+  display: block;
+  margin-block-end: 0.4rem;
+  font-weight: 700;
+}
+.field input {
+  display: block;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+}
+.field input[aria-invalid='true'] {
+  border-color: var(--error);
+}
+.field input:focus-visible {
+  border-color: var(--focus);
+}
+.field input[type='email'] {
+  direction: ltr;
+  text-align: start;
+}
+.hint {
+  margin: 0.4rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.field-error,
+.form-error {
+  margin: 0.4rem 0 0;
+  color: var(--error);
+  font-size: 0.9rem;
+}
+.form-error {
+  margin-block-end: 1rem;
+  padding: 0.8rem;
+  border: 1px solid var(--error);
+  border-radius: 0.75rem;
+  background: var(--error-surface);
+}
+.notice {
+  margin-block-end: 1rem;
+  padding: 0.8rem;
+  border: 1px solid var(--success);
+  border-radius: 0.75rem;
+  color: var(--success);
+}
+button[type='submit'] {
+  width: 100%;
+  min-height: 3.1rem;
+  margin-block-start: 0.6rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: var(--accent);
+  color: var(--page);
+  font-weight: 800;
+  cursor: pointer;
+}
+button[type='submit']:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.switch {
+  margin-block-start: 1.6rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+.switch a {
+  font-weight: 700;
+}
+@media (max-width: 800px) {
+  .auth-layout {
+    display: block;
+  }
+  .auth-story {
+    display: none;
+  }
+  .auth-page {
+    min-height: 100dvh;
+  }
+  .auth-top {
+    justify-content: space-between;
+  }
+  .mobile-brand {
+    display: inline;
+  }
+}

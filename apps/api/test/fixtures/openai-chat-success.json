@@ -1,0 +1,11 @@
+{
+  "id": "chatcmpl-fixture-1",
+  "choices": [
+    {
+      "index": 0,
+      "message": { "role": "assistant", "content": "Invoices are paid in thirty days [S1]." },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": { "prompt_tokens": 120, "completion_tokens": 20, "total_tokens": 140 }
+}

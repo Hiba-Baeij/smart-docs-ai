@@ -1,0 +1,344 @@
+<div class="chat-layout" [class.has-thread]="!!store.selectedId()">
+  <aside class="sidebar card" [attr.aria-label]="locale.t('chat.conversations')">
+    <div class="sidebar-head">
+      <h1>{{ locale.t('chat.conversations') }}</h1>
+      <button
+        type="button"
+        class="new-btn"
+        [disabled]="store.isCreating()"
+        [attr.title]="locale.t('chat.new')"
+        (click)="create()"
+      >
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        <span class="sr-only">{{ locale.t('chat.new') }}</span>
+      </button>
+    </div>
+    @if (actionMessage(); as message) {
+      <p class="error" role="alert">{{ message }}</p>
+    }
+    @if (store.listStatus() === 'loading' && store.conversations().length === 0) {
+      <p class="muted pad" role="status">{{ locale.t('chat.loadingConversations') }}</p>
+      <div class="skeleton-rows" aria-hidden="true">
+        <div class="skeleton-row"></div>
+        <div class="skeleton-row"></div>
+        <div class="skeleton-row"></div>
+      </div>
+    } @else if (listMessage(); as message) {
+      <p class="error pad" role="alert">
+        {{ message }}
+        <button type="button" (click)="store.loadConversations()">
+          {{ locale.t('chat.retry') }}
+        </button>
+      </p>
+    } @else if (store.conversations().length === 0) {
+      <p class="muted pad">{{ locale.t('chat.emptyConversations') }}</p>
+    }
+    <nav class="rows" [attr.aria-label]="locale.t('chat.conversationList')">
+      @for (conversation of store.conversations(); track conversation.id) {
+        <button
+          type="button"
+          class="conversation"
+          dir="auto"
+          [class.active]="conversation.id === store.selectedId()"
+          [attr.aria-current]="conversation.id === store.selectedId() ? 'true' : null"
+          (click)="select(conversation.id)"
+        >
+          <span class="avatar" aria-hidden="true">{{ initial(conversation.title) }}</span>
+          <span class="conversation-title">{{ conversation.title || locale.t('chat.new') }}</span>
+          <span class="conversation-time">{{ rowTime(conversation.updatedAt) }}</span>
+        </button>
+      }
+    </nav>
+    @if (store.hasMoreConversations()) {
+      <button type="button" class="more" (click)="store.loadConversations(true)">
+        {{ locale.t('chat.moreConversations') }}
+      </button>
+    }
+  </aside>
+
+  <section class="thread card" [attr.aria-label]="locale.t('chat.thread')">
+    @if (!store.selectedId()) {
+      <div class="blank">
+        <svg class="blank-art" viewBox="0 0 120 120" aria-hidden="true">
+          <rect x="18" y="26" width="64" height="48" rx="14" class="art-a" />
+          <path d="M34 74v14l16-14" class="art-a" />
+          <rect x="44" y="46" width="58" height="42" rx="14" class="art-b" />
+          <path d="M88 88v12l-14-12" class="art-b" />
+        </svg>
+        <h2>{{ locale.t('chat.askDocuments') }}</h2>
+        <p>{{ locale.t('chat.startHint') }}</p>
+      </div>
+    } @else {
+      <div class="thread-head">
+        <button
+          type="button"
+          class="icon-btn back"
+          (click)="back()"
+          [attr.aria-label]="locale.t('chat.back')"
+        >
+          <svg class="ic flip" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
+        </button>
+        <span class="avatar accent" aria-hidden="true">{{ initial(selectedTitle()) }}</span>
+        <div class="head-text">
+          <h2 dir="auto">{{ selectedTitle() }}</h2>
+          <p>{{ locale.t('chat.threadSub') }}</p>
+        </div>
+        <button type="button" class="icon-btn delete" (click)="askToDelete()">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+          </svg>
+          <span class="sr-only">{{ locale.t('chat.deleteConversation') }}</span>
+        </button>
+      </div>
+      @if (confirming() === store.selectedId()) {
+        <div
+          role="alertdialog"
+          [attr.aria-label]="locale.t('chat.deleteConversation')"
+          class="confirm"
+          (keydown.escape)="cancelDelete()"
+        >
+          <p>{{ locale.t('chat.deletePrompt') }}</p>
+          <div class="confirm-actions">
+            <button type="button" (click)="cancelDelete()">
+              {{ locale.t('docs.detail.cancel') }}
+            </button>
+            <button
+              type="button"
+              class="danger"
+              [disabled]="!!store.deletingId()"
+              (click)="deleteSelected()"
+            >
+              {{ locale.t('chat.yesDelete') }}
+            </button>
+          </div>
+        </div>
+      }
+      <div
+        #log
+        class="message-log"
+        role="log"
+        [attr.aria-label]="locale.t('chat.messages')"
+        aria-live="polite"
+        aria-relevant="additions"
+        (scroll)="onScroll()"
+      >
+        @if (store.thread().status === 'loading' && store.thread().items.length === 0) {
+          <p class="muted" role="status">{{ locale.t('chat.loadingMessages') }}</p>
+          <div class="skeleton" aria-hidden="true"></div>
+          <div class="skeleton end" aria-hidden="true"></div>
+          <div class="skeleton" aria-hidden="true"></div>
+        } @else if (threadMessage(); as message) {
+          <p class="error" role="alert">
+            {{ message }}
+            <button type="button" (click)="store.loadMessages(store.selectedId()!)">
+              {{ locale.t('chat.retry') }}
+            </button>
+          </p>
+        } @else if (store.thread().items.length === 0) {
+          <div class="empty-thread">
+            <svg class="blank-art small" viewBox="0 0 120 120" aria-hidden="true">
+              <rect x="18" y="26" width="64" height="48" rx="14" class="art-a" />
+              <rect x="44" y="46" width="58" height="42" rx="14" class="art-b" />
+            </svg>
+            <p>{{ locale.t('chat.emptyMessages') }}</p>
+            <div class="suggestions">
+              @for (suggestion of suggestions(); track suggestion) {
+                <button
+                  type="button"
+                  class="suggestion"
+                  dir="auto"
+                  (click)="setDraft(suggestion); composer.focus()"
+                >
+                  {{ suggestion }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+        @if (store.thread().page > 1) {
+          <button type="button" class="more" (click)="moreMessages()">
+            {{ locale.t('chat.moreMessages') }}
+          </button>
+        }
+        @for (message of store.thread().items; track message.id; let i = $index) {
+          <article
+            class="msg"
+            [class.me]="message.role === 'user'"
+            [class.failed]="message.failed"
+            [style.animation-delay.ms]="i < 8 ? i * 40 : 0"
+          >
+            @if (message.role === 'assistant') {
+              <span class="msg-av" aria-hidden="true"
+                ><svg class="ic" viewBox="0 0 24 24">
+                  <path d="M7 3h7l5 5v13H7z" />
+                  <path d="M10 13h6M10 17h4" /></svg
+              ></span>
+            }
+            <div
+              class="bubble"
+              [class.fallback]="message.role === 'assistant' && message.content === fallbackText"
+            >
+              <span class="sr-only">{{
+                message.role === 'user' ? locale.t('chat.you') : locale.t('chat.assistant')
+              }}</span>
+              @if (message.role === 'assistant') {
+                <app-assistant-markdown [content]="message.content" />
+              } @else {
+                <p dir="auto">{{ message.content }}</p>
+              }
+              @if (message.failed) {
+                <p class="error" role="alert">{{ errorText(message.error) }}</p>
+                <button
+                  type="button"
+                  class="retry"
+                  [disabled]="store.thread().pending"
+                  (click)="retry(message.id, message.content)"
+                >
+                  {{ locale.t('chat.retryQuestion') }}
+                </button>
+              }
+              @if (message.role === 'assistant' && message.sources.length) {
+                <div class="sources" role="group" [attr.aria-label]="locale.t('chat.sources')">
+                  @for (
+                    source of message.sources;
+                    track source.documentId + ':' + source.chunkIndex
+                  ) {
+                    @if (sourceKnown(source.documentId)) {
+                      <a class="source-chip" [routerLink]="['/documents', source.documentId]">
+                        <span
+                          class="badge"
+                          [class]="'badge ' + kind(source.documentName)"
+                          aria-hidden="true"
+                          >{{ ext(source.documentName) }}</span
+                        >
+                        <span class="chip-text"
+                          ><span class="chip-name"
+                            ><bdi>{{ source.documentName }}</bdi></span
+                          ><span class="chip-sub">{{
+                            source.pageNumber
+                              ? locale.t('docs.detail.page') + ' ' + source.pageNumber
+                              : source.sheetName
+                                ? locale.t('docs.detail.sheet') + ' ' + source.sheetName
+                                : ''
+                          }}</span></span
+                        >
+                      </a>
+                    } @else {
+                      <span class="source-chip unavailable"
+                        ><span class="chip-text"
+                          ><span class="chip-name"
+                            ><bdi>{{ source.documentName }}</bdi> ({{
+                              locale.t('chat.sourceUnavailable')
+                            }})</span
+                          ></span
+                        ></span
+                      >
+                    }
+                  }
+                </div>
+              }
+              <div class="meta">
+                @if (message.pending) {
+                  <span role="status">{{ locale.t('chat.sending') }}</span>
+                }
+                <time [attr.datetime]="message.createdAt">{{ clock(message.createdAt) }}</time>
+              </div>
+            </div>
+          </article>
+        }
+        @if (store.thread().pending) {
+          <div class="typing" role="status">
+            <span class="msg-av" aria-hidden="true"
+              ><svg class="ic" viewBox="0 0 24 24">
+                <path d="M7 3h7l5 5v13H7z" />
+                <path d="M10 13h6M10 17h4" /></svg
+            ></span>
+            <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="typing-label">{{ locale.t('chat.preparing') }}</span>
+          </div>
+        }
+      </div>
+      @if (!atBottom()) {
+        <button
+          type="button"
+          class="jump"
+          (click)="jump()"
+          [attr.aria-label]="locale.t('chat.jumpLatest')"
+        >
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+        </button>
+      }
+      <div class="composer">
+        <label class="sr-only" for="question">{{ locale.t('chat.question') }}</label>
+        <div class="pill">
+          <textarea
+            #composer
+            id="question"
+            rows="1"
+            maxlength="4000"
+            [placeholder]="locale.t('chat.placeholder')"
+            [ngModel]="draft()"
+            (ngModelChange)="setDraft($event)"
+            (keydown)="keydown($event)"
+            [disabled]="store.thread().pending"
+          ></textarea>
+          <button
+            type="button"
+            class="send"
+            [class.ready]="!!draft().trim()"
+            [disabled]="!draft().trim() || store.thread().pending"
+            (click)="send()"
+          >
+            <svg class="ic plane" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M21 3L10 14" />
+              <path d="M21 3l-7 18-4-7-7-4z" />
+            </svg>
+            <span class="sr-only">{{ locale.t('chat.send') }}</span>
+          </button>
+        </div>
+        <div class="composer-actions">
+          <span>{{ locale.t('chat.composerHint') }}</span>
+        </div>
+      </div>
+    }
+  </section>
+
+  @if (store.selectedId()) {
+    <aside class="docs-panel card" [attr.aria-label]="locale.t('chat.sourcesPanel')">
+      <h2>{{ locale.t('chat.sourcesPanel') }}</h2>
+      @if (citedDocuments().length === 0) {
+        <p class="muted">{{ locale.t('chat.sourcesPanelEmpty') }}</p>
+      } @else {
+        <p class="muted">{{ locale.t('chat.sourcesPanelHint') }}</p>
+        <ul>
+          @for (doc of citedDocuments(); track doc.documentId) {
+            <li>
+              @if (sourceKnown(doc.documentId)) {
+                <a class="doc-card" [routerLink]="['/documents', doc.documentId]">
+                  <span class="badge" [class]="'badge ' + kind(doc.name)" aria-hidden="true">{{
+                    ext(doc.name)
+                  }}</span>
+                  <span class="chip-text"
+                    ><span class="chip-name"
+                      ><bdi>{{ doc.name }}</bdi></span
+                    ><span class="chip-sub">×{{ doc.count }}</span></span
+                  >
+                </a>
+              } @else {
+                <span class="doc-card unavailable"
+                  ><span class="chip-text"
+                    ><span class="chip-name"
+                      ><bdi>{{ doc.name }}</bdi></span
+                    ><span class="chip-sub">{{ locale.t('chat.sourceUnavailable') }}</span></span
+                  ></span
+                >
+              }
+            </li>
+          }
+        </ul>
+      }
+    </aside>
+  }
+</div>

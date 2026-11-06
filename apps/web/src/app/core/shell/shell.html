@@ -1,0 +1,22 @@
+<header class="shell-header">
+  <a class="brand" routerLink="/documents">SmartDocs AI</a>
+  <nav [attr.aria-label]="locale.t('nav.main')">
+    <a routerLink="/documents" routerLinkActive="active">{{ locale.t('nav.documents') }}</a>
+    <a routerLink="/chat" routerLinkActive="active">{{ locale.t('nav.chat') }}</a>
+  </nav>
+
+  <div class="account">
+    <app-preferences-controls />
+    @if (auth.user(); as user) {
+      <!-- Interpolation escapes HTML: a name such as "<b>x</b>" is shown as text, never parsed. -->
+      <span class="user-name" dir="auto">{{ user.name }}</span>
+    }
+    <button type="button" class="sign-out" [disabled]="signingOut()" (click)="signOut()">
+      {{ signingOut() ? locale.t('nav.signingOut') : locale.t('nav.signOut') }}
+    </button>
+  </div>
+</header>
+
+<main class="shell-main">
+  <router-outlet />
+</main>

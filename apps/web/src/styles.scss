@@ -1,0 +1,158 @@
+@use 'tailwindcss';
+
+/* Readex Pro (SIL OFL 1.1), self-hosted: one family for Arabic and Latin. */
+@font-face {
+  font-family: 'Readex Pro';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 160 700;
+  src: url('/fonts/readex-pro-arabic-wght-normal.woff2') format('woff2');
+  unicode-range:
+    U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E,
+    U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC;
+}
+/* Readex Pro (SIL OFL 1.1), self-hosted: one family for Arabic and Latin. */
+@font-face {
+  font-family: 'Readex Pro';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 160 700;
+  src: url('/fonts/readex-pro-latin-ext-wght-normal.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+/* Readex Pro (SIL OFL 1.1), self-hosted: one family for Arabic and Latin. */
+@font-face {
+  font-family: 'Readex Pro';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 160 700;
+  src: url('/fonts/readex-pro-latin-wght-normal.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  font-family: 'Readex Pro', 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-synthesis: none;
+  color-scheme: light;
+  --page: hsl(220 33% 97%);
+  --surface: hsl(0 0% 100%);
+  --surface-raised: hsl(220 33% 99%);
+  --surface-muted: hsl(220 24% 94%);
+  --text: hsl(225 28% 14%);
+  --text-muted: hsl(222 12% 36%);
+  --border: hsl(220 18% 80%);
+  --accent: hsl(220 82% 40%);
+  --accent-strong: hsl(220 88% 32%);
+  --focus: hsl(194 90% 38%);
+  --error: hsl(0 68% 36%);
+  --error-surface: hsl(0 100% 97%);
+  --success: hsl(150 65% 28%);
+  --warning: hsl(35 82% 30%);
+  --warning-surface: hsl(42 100% 93%);
+  --bubble-user: hsl(211 100% 92%);
+  --accent-surface: hsl(213 100% 93%);
+  --success-surface: hsl(145 54% 92%);
+  --shadow: 0 20px 60px hsl(225 35% 20% / 0.08);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --page: hsl(230 35% 7%);
+  --surface: hsl(230 28% 11%);
+  --surface-raised: hsl(229 25% 15%);
+  --surface-muted: hsl(230 22% 20%);
+  --text: hsl(210 32% 95%);
+  --text-muted: hsl(218 19% 71%);
+  --border: hsl(225 19% 34%);
+  --accent: hsl(187 88% 62%);
+  --accent-strong: hsl(187 92% 73%);
+  --focus: hsl(185 100% 69%);
+  --error: hsl(0 93% 78%);
+  --error-surface: hsl(355 40% 17%);
+  --success: hsl(149 74% 68%);
+  --warning: hsl(42 94% 73%);
+  --warning-surface: hsl(35 38% 17%);
+  --bubble-user: hsl(214 47% 23%);
+  --accent-surface: hsl(212 42% 20%);
+  --success-surface: hsl(151 42% 17%);
+  --shadow: 0 20px 60px hsl(230 60% 3% / 0.45);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--page);
+  color: var(--text);
+  line-height: 1.5;
+}
+button,
+input,
+textarea {
+  font: inherit;
+}
+button {
+  color: inherit;
+}
+a {
+  color: var(--accent);
+}
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+[dir='rtl'] {
+  font-family: 'Readex Pro', Tahoma, 'Segoe UI', Arial, sans-serif;
+}
+/* Negative tracking breaks Arabic letter joining. */
+[dir='rtl'] * {
+  letter-spacing: normal !important;
+}
+h1,
+h2,
+h3 {
+  font-weight: 650;
+}
+/* Short, purposeful motion: a calm page entrance and tactile press feedback. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.shell-main > :not(router-outlet) {
+  animation: page-enter 0.32s ease-out both;
+}
+button,
+a {
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.15s ease;
+}
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
