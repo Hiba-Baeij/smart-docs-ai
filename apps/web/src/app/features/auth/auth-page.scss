@@ -1,0 +1,23 @@
+/* What the sign-in and sign-up pages add inside <app-auth-layout>; fields and buttons are styled by <app-form>. */
+.notice,
+.alert {
+  margin-block-end: 1rem;
+  padding: 0.8rem;
+  border: 1px solid var(--success);
+  border-radius: 0.75rem;
+  color: var(--success);
+}
+.alert {
+  border-color: var(--error);
+  background: var(--error-surface);
+  color: var(--error);
+  font-size: 0.9rem;
+}
+.switch {
+  margin-block-start: 1.6rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+.switch a {
+  font-weight: 700;
+}

@@ -1,83 +1,28 @@
-<div class="auth-layout">
-  <aside class="auth-story" aria-hidden="true">
-    <div class="story-brand">SmartDocs <span>AI</span></div>
-    <div class="story-copy">
-      <span class="story-kicker">{{ locale.t('auth.hero.kicker') }}</span>
-      <h2>{{ locale.t('auth.hero.title') }}</h2>
-      <p>{{ locale.t('auth.hero.text') }}</p>
-    </div>
-    <div class="story-orbit"></div>
-  </aside>
-  <main class="auth-page min-h-dvh">
-    <div class="auth-top">
-      <a class="mobile-brand" routerLink="/login">SmartDocs AI</a><app-preferences-controls />
-    </div>
-    <div class="auth-card">
-      <h1>{{ locale.t('auth.login.heading') }}</h1>
-      <p class="auth-subtitle">{{ locale.t('auth.login.subtitle') }}</p>
+<app-auth-layout heading="auth.login.heading" subtitle="auth.login.subtitle">
+  @if (justRegistered) {
+    <p class="notice" role="status">{{ locale.t('auth.register.success') }}</p>
+  }
 
-      @if (justRegistered) {
-        <p class="notice" role="status">{{ locale.t('auth.register.success') }}</p>
-      }
+  @if (sessionExpired) {
+    <p class="notice" role="status">{{ locale.t('auth.session.expired') }}</p>
+  }
 
-      @if (sessionExpired) {
-        <p class="notice" role="status">{{ locale.t('auth.session.expired') }}</p>
-      }
+  @if (signOutFailed) {
+    <p class="alert" role="alert">{{ locale.t('auth.signOut.failed') }}</p>
+  }
 
-      @if (signOutFailed) {
-        <p class="form-error" role="alert">
-          {{ locale.t('auth.signOut.failed') }}
-        </p>
-      }
+  <app-form [form]="form" submitLabel="auth.login.action" pendingLabel="auth.login.pending">
+    <app-field name="email" label="auth.email" type="email" autocomplete="username" />
+    <app-field
+      name="password"
+      label="auth.password"
+      type="password"
+      autocomplete="current-password"
+    />
+  </app-form>
 
-      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-        @if (formError(); as text) {
-          <p class="form-error" role="alert">{{ text }}</p>
-        }
-
-        <div class="field">
-          <label for="login-email">{{ locale.t('auth.email') }}</label>
-          <input
-            id="login-email"
-            type="email"
-            formControlName="email"
-            autocomplete="username"
-            [attr.aria-invalid]="message('email', locale.t('auth.email')) ? 'true' : null"
-            [attr.aria-describedby]="
-              message('email', locale.t('auth.email')) ? 'login-email-error' : null
-            "
-          />
-          @if (message('email', locale.t('auth.email')); as text) {
-            <p class="field-error" id="login-email-error">{{ text }}</p>
-          }
-        </div>
-
-        <div class="field">
-          <label for="login-password">{{ locale.t('auth.password') }}</label>
-          <input
-            id="login-password"
-            type="password"
-            formControlName="password"
-            autocomplete="current-password"
-            [attr.aria-invalid]="message('password', locale.t('auth.password')) ? 'true' : null"
-            [attr.aria-describedby]="
-              message('password', locale.t('auth.password')) ? 'login-password-error' : null
-            "
-          />
-          @if (message('password', locale.t('auth.password')); as text) {
-            <p class="field-error" id="login-password-error">{{ text }}</p>
-          }
-        </div>
-
-        <button type="submit" [disabled]="submitting()" [attr.aria-busy]="submitting()">
-          {{ submitting() ? locale.t('auth.login.pending') : locale.t('auth.login.action') }}
-        </button>
-      </form>
-
-      <p class="switch">
-        {{ locale.t('auth.login.switch') }}
-        <a routerLink="/register">{{ locale.t('auth.register.action') }}</a>
-      </p>
-    </div>
-  </main>
-</div>
+  <p class="switch">
+    {{ locale.t('auth.login.switch') }}
+    <a routerLink="/register">{{ locale.t('auth.register.action') }}</a>
+  </p>
+</app-auth-layout>

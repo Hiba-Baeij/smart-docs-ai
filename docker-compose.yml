@@ -1,5 +1,7 @@
 services:
   db:
+    # Embeddings are stored as real[] (ADR-018), so no extension image is needed. The upgrade to
+    # pgvector (image pgvector/pgvector:*-pg17 on a new volume) is described in ADR-018.
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: smartdocs

@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { MockEmbeddingProvider } from './../src/ai/mock-embedding.provider';
 import { AppModule } from './../src/app.module';
 import { configureApp } from './../src/app.setup';
 import { hashPassword } from './../src/auth/password';
@@ -129,5 +130,51 @@ describe('searching what an upload stored (e2e)', () => {
       .expect(422);
 
     expect(await ask('sara', 'refund policy')).toEqual([]);
+  });
+
+  describe('semantic retrieval (ADR-018, mock embeddings)', () => {
+    const embeddedChunks = async (userId: string) =>
+      prisma.$queryRaw<{ total: number; embedded: number }[]>`
+        SELECT count(*)::int AS total, count(c.embedding)::int AS embedded
+          FROM "DocumentChunk" c JOIN "Document" d ON d.id = c."documentId"
+         WHERE d."uploadedBy" = ${userId}`;
+
+    it('stores an embedding for every chunk of an upload', async () => {
+      await upload('sara', 'text-3-pages.pdf');
+
+      const [{ total, embedded }] = await embeddedChunks(users.sara.id);
+      expect(total).toBeGreaterThan(1);
+      expect(embedded).toBe(total);
+    });
+
+    it('vector search returns the closest chunk, only from the caller', async () => {
+      await upload('omar', 'text-3-pages.pdf');
+      await upload('sara', 'headings.docx');
+      const [vector] = await new MockEmbeddingProvider().embed([
+        'shipping times page',
+      ]);
+
+      const forSara = await search.searchByVector({
+        userId: users.sara.id,
+        vector,
+        limit: 6,
+        maxDistance: 2,
+      });
+      const forOmar = await search.searchByVector({
+        userId: users.omar.id,
+        vector,
+        limit: 6,
+        maxDistance: 0.9,
+      });
+
+      expect(forOmar[0].content).toContain('shipping times');
+      expect(forOmar[0].score).toBeGreaterThan(forOmar.at(-1)!.score - 1e-9);
+      const saraDocs = await prisma.document.findMany({
+        where: { uploadedBy: users.sara.id },
+      });
+      expect(forSara.every((hit) => hit.documentId === saraDocs[0].id)).toBe(
+        true,
+      );
+    });
   });
 });

@@ -3,6 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { ErrorCode } from '@smartdocs/contracts';
 import type { DocumentSummary, FileType } from '@smartdocs/contracts';
 import {
+  EMBEDDING_PROVIDER,
+  toEmbeddingLiteral,
+  type EmbeddingProvider,
+} from '../ai/embedding-provider';
+import { Prisma } from '../generated/prisma/client';
+import {
   AppError,
   EmptyExtractionError,
   ExtractedTextTooLargeError,
@@ -48,6 +54,8 @@ export class UploadDocumentService {
     @Inject(CHUNK_DOCUMENT)
     private readonly chunkDocument: ChunkDocument,
     private readonly config: ConfigService,
+    @Inject(EMBEDDING_PROVIDER)
+    private readonly embeddings: EmbeddingProvider,
   ) {}
 
   async execute({
@@ -69,6 +77,8 @@ export class UploadDocumentService {
 
     try {
       const { text, chunks } = await this.extractAndChunk(fileType, file);
+      // Before the transaction: a network call must not hold a database connection open.
+      const vectors = await this.embedChunks(chunks);
 
       // The one place that needs atomicity (ADR-006): the chunks and the COMPLETED status are
       // written together or not at all, so "COMPLETED without chunks" and "chunks of a document
@@ -85,6 +95,19 @@ export class UploadDocumentService {
               sheetName: chunk.sheetName,
             })),
           });
+          if (vectors) {
+            // createMany cannot write an Unsupported column; one UPDATE sets every embedding.
+            // Each vector is a bound parameter cast in SQL, never text in the statement.
+            await tx.$executeRaw(Prisma.sql`
+              UPDATE "DocumentChunk" AS c
+                 SET embedding = v.embedding::real[]
+                FROM unnest(
+                       ${chunks.map((chunk) => chunk.chunkIndex)}::int[],
+                       ${vectors.map(toEmbeddingLiteral)}::text[]
+                     ) AS v("chunkIndex", embedding)
+               WHERE c."documentId" = ${document.id}
+                 AND c."chunkIndex" = v."chunkIndex"`);
+          }
           return tx.document.update({
             where: { id: document.id },
             data: { extractedText: text, status: 'COMPLETED' },
@@ -146,6 +169,28 @@ export class UploadDocumentService {
           return { text: document.text, chunks };
         }),
     );
+  }
+
+  /**
+   * One vector per chunk, or null when semantic retrieval is off or the provider failed. A failure
+   * does not fail the upload: the document is still found by keyword, and `npm run db:embed -w api`
+   * adds the missing embeddings later (ADR-018).
+   */
+  private async embedChunks(chunks: ChunkDraft[]): Promise<number[][] | null> {
+    if (!this.embeddings.enabled) return null;
+    try {
+      return await this.embeddings.embed(
+        chunks.map((chunk) => chunk.content),
+        this.config.get<number>('EMBEDDING_TIMEOUT_MS', 10_000),
+      );
+    } catch (error) {
+      this.logger.warn({
+        event: 'chunk_embedding_skipped',
+        chunks: chunks.length,
+        code: error instanceof AppError ? error.code : 'ERROR',
+      });
+      return null;
+    }
   }
 
   private chunkConfig(): ChunkConfig {

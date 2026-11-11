@@ -1,0 +1,41 @@
+:host {
+  display: block;
+}
+.field {
+  margin-block-end: 1.15rem;
+}
+label {
+  display: block;
+  margin-block-end: 0.4rem;
+  font-weight: 700;
+}
+input {
+  display: block;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+}
+input[aria-invalid='true'] {
+  border-color: var(--error);
+}
+input:focus-visible {
+  border-color: var(--focus);
+}
+input[type='email'] {
+  direction: ltr;
+  text-align: start;
+}
+.hint {
+  margin: 0.4rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.field-error {
+  margin: 0.4rem 0 0;
+  color: var(--error);
+  font-size: 0.9rem;
+}

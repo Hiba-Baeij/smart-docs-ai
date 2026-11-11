@@ -31,3 +31,41 @@ describe('LocaleService', () => {
     expect(locale.t('auth.login.heading')).toBe('تسجيل الدخول');
   });
 });
+
+describe('LocaleService registry', () => {
+  beforeEach(() => localStorage.clear());
+  afterEach(() => {
+    localStorage.clear();
+    document.documentElement.lang = 'en';
+    document.documentElement.dir = 'ltr';
+  });
+
+  it('ignores a saved value that is not a supported language', () => {
+    localStorage.setItem('smartdocs.locale', 'xx');
+    expect(TestBed.inject(LocaleService).current()).toBe('en');
+  });
+
+  it('takes the direction from the registry and saves it for the start-up script', () => {
+    const locale = TestBed.inject(LocaleService);
+    locale.set('ar');
+    expect(locale.dir()).toBe('rtl');
+    expect(localStorage.getItem('smartdocs.dir')).toBe('rtl');
+    locale.set('en');
+    expect(locale.dir()).toBe('ltr');
+    expect(localStorage.getItem('smartdocs.dir')).toBe('ltr');
+  });
+
+  it('offers every registered language and names the next one in its own language', () => {
+    const locale = TestBed.inject(LocaleService);
+    expect(locale.available).toEqual(['en', 'ar']);
+    expect(locale.nativeName(locale.next())).toBe('العربية');
+    locale.set(locale.next());
+    expect(locale.nativeName(locale.next())).toBe('English');
+  });
+
+  it('fills placeholders', () => {
+    expect(TestBed.inject(LocaleService).t('form.required', { label: 'Email' })).toBe(
+      'Email is required.',
+    );
+  });
+});

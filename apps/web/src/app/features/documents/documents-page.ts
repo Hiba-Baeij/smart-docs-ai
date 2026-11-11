@@ -5,7 +5,7 @@ import { EmptyState } from '../../shared/empty-state';
 import { ErrorBanner } from '../../shared/error-banner';
 import { StatusBadge } from '../../shared/status-badge';
 import { DocumentUpload } from './document-upload';
-import { documentState, failedDocumentMessage, stalledMessage } from './document-state';
+import { documentState, failedDocumentMessage, STALLED_MESSAGE } from './document-state';
 import { DocumentsStore } from './documents.store';
 
 /**
@@ -41,9 +41,9 @@ export class DocumentsPage implements OnInit {
         state,
         note:
           state === 'failed'
-            ? failedDocumentMessage(document.errorCode, this.locale.current())
+            ? this.locale.t(failedDocumentMessage(document.errorCode))
             : state === 'stalled'
-              ? stalledMessage(this.locale.current())
+              ? this.locale.t(STALLED_MESSAGE)
               : null,
       };
     });

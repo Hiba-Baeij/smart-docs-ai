@@ -1,5 +1,5 @@
 import type { DocumentSummary, ErrorCode } from '@smartdocs/contracts';
-import type { Locale } from '../../core/i18n/locale.service';
+import type { MessageKey } from '../../core/i18n/messages.en';
 
 /**
  * What a document looks like to the person, which is not quite its stored status:
@@ -28,40 +28,18 @@ export function documentState(
   }
 }
 
-/** A sentence for a stored failure. Only the code is stored, never a message. */
-export function failedDocumentMessage(code: ErrorCode | null, locale: Locale = 'en'): string {
-  if (locale === 'ar') {
-    switch (code) {
-      case 'EMPTY_EXTRACTION':
-        return 'تعذرت قراءة النص. إذا كان ملف PDF صورة ممسوحة ضوئيًا، فارفع نسخة بنص قابل للتحديد.';
-      case 'EXTRACTION_FAILED':
-        return 'تعذرت قراءة الملف. قد يكون تالفًا أو محميًا بكلمة مرور.';
-      case 'PROCESSING_TIMEOUT':
-        return 'استغرقت المعالجة وقتًا طويلًا فتوقفت.';
-      case 'FILE_TOO_LARGE':
-        return 'يحتوي الملف على نص أكثر من الحد المسموح لمعالجته.';
-      default:
-        return 'فشلت المعالجة بسبب مشكلة في الخدمة. احذف المستند وارفع الملف مرة أخرى.';
-    }
-  }
-  switch (code) {
-    case 'EMPTY_EXTRACTION':
-      return 'No text could be read. If this is a scanned PDF, upload a version with selectable text.';
-    case 'EXTRACTION_FAILED':
-      return 'The file could not be read. It may be corrupted or protected with a password.';
-    case 'PROCESSING_TIMEOUT':
-      return 'Processing took too long and was stopped.';
-    case 'FILE_TOO_LARGE':
-      return 'The file contains too much text to process.';
-    default:
-      return 'Processing failed because of a problem on our side. Delete it and upload the file again.';
-  }
+/** Stored failures with their own explanation; any other code gets `docs.failed.other`. */
+const FAILED_MESSAGES: Partial<Record<ErrorCode, MessageKey>> = {
+  EMPTY_EXTRACTION: 'docs.failed.emptyExtraction',
+  EXTRACTION_FAILED: 'docs.failed.extraction',
+  PROCESSING_TIMEOUT: 'docs.failed.timeout',
+  FILE_TOO_LARGE: 'docs.failed.tooLarge',
+};
+
+/** The message for a stored failure. Only the code is stored, never a message. */
+export function failedDocumentMessage(code: ErrorCode | null): MessageKey {
+  return (code && FAILED_MESSAGES[code]) || 'docs.failed.other';
 }
 
 /** Shown for a document that never finished; the only things possible are to delete and re-upload. */
-export const STALLED_MESSAGE = 'This upload did not finish. Delete it and upload the file again.';
-export function stalledMessage(locale: Locale): string {
-  return locale === 'ar'
-    ? 'لم يكتمل رفع هذا الملف. احذفه ثم ارفعه مرة أخرى.'
-    : STALLED_MESSAGE;
-}
+export const STALLED_MESSAGE: MessageKey = 'docs.stalled';

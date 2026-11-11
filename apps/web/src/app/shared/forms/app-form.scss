@@ -1,0 +1,27 @@
+:host {
+  display: block;
+}
+.form-error {
+  margin: 0 0 1rem;
+  padding: 0.8rem;
+  border: 1px solid var(--error);
+  border-radius: 0.75rem;
+  background: var(--error-surface);
+  color: var(--error);
+  font-size: 0.9rem;
+}
+button[type='submit'] {
+  width: 100%;
+  min-height: 3.1rem;
+  margin-block-start: 0.6rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: var(--accent);
+  color: var(--page);
+  font-weight: 800;
+  cursor: pointer;
+}
+button[type='submit']:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}

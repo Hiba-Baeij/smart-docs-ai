@@ -23,7 +23,7 @@ not listed here and not in `user-stories.md`, it is out of scope by default.
 
 | Deferred | Why now | Upgrade path |
 |---|---|---|
-| pgvector semantic search | Arabic FTS quality must be measured first; embeddings cost money and add a migration risk | `ChunkRetriever` port; add a vector adapter and an `embedding` column |
+| ~~Semantic search~~ | Built: hybrid keyword + vector retrieval, real[] storage (ADR-018) | pgvector index (ADR-018) |
 | Streaming answers | Adds SSE plumbing and partial-message persistence | `LlmProvider` interface stays stream-capable |
 | Background processing queue | One synchronous upload path is enough at this size | Move the extraction call behind a job queue; status model already exists |
 | Refresh tokens | One-hour cookie is acceptable; refresh adds rotation and revocation design | Add a `RefreshToken` entity and rotation rules |

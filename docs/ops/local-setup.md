@@ -78,6 +78,9 @@ Expected:
 | `CHUNK_TARGET_WORDS` | new words per chunk before the next starts | `700` |
 | `CHUNK_OVERLAP_WORDS` | words repeated at the head of the next chunk (text and PDF) | `100` |
 | `CHUNK_MAX_WORDS` | no chunk is longer; must be at least target + overlap + 60 | `1200` |
+| `EMBEDDING_MODEL` | embedding model on the LLM endpoint; empty = keyword-only (ADR-018) | `gemini-embedding-001` |
+| `EMBEDDING_TIMEOUT_MS` | embedding call timeout; on timeout retrieval is keyword-only | `10000` |
+| `VECTOR_MAX_DISTANCE` | cosine distance above which a vector match is dropped | `0.5` |
 | `RETRIEVAL_TOP_K` | chunks kept | `6` |
 | `RETRIEVAL_CANDIDATES` | chunks ranked | `20` |
 | `RETRIEVAL_TOKEN_BUDGET` | evidence budget (estimate) | `3000` |
@@ -93,8 +96,10 @@ startup and refuses to boot with a missing required value.
   host-installed PostgreSQL commonly owns 5432 and would silently receive the connection.
 - Extensions needed by the search spike (`unaccent`, `pg_trgm`) are created by a migration
   in Phase 5. The init script may also create them for convenience, but the migration is
-  what guarantees a fresh clone and an existing volume behave the same. `vector` is **not**
-  installed in v1.
+  what guarantees a fresh clone and an existing volume behave the same.
+- Chunk embeddings are a `real[]` column added by the `chunk_embedding` migration; no extension
+  is needed (ADR-018, which also describes the pgvector upgrade). After seeding, or after switching on a real
+  `EMBEDDING_MODEL`, run `npm run db:embed -w api` to add the missing chunk embeddings.
 - The seed creates the user `dev@smartdocs.local` (its password is defined in
   `apps/api/prisma/seed.ts`), one Arabic DOCX and one English PDF, three chunks each. It is
   safe to run repeatedly and refuses to run in production or against a non-local host.

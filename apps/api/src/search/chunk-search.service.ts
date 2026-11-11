@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client';
+import { toEmbeddingLiteral, toUnitLength } from '../ai/embedding-provider';
 import { PrismaService } from '../prisma/prisma.service';
 import { isStopWord, tokenize } from './query-terms';
 
@@ -74,6 +75,56 @@ export class ChunkSearchService {
          AND d.status = 'COMPLETED'
          AND c.search_vector @@ q.query
        ORDER BY score DESC, d."createdAt" DESC, c."chunkIndex" ASC
+       LIMIT ${limit}`);
+  }
+
+  /**
+   * Semantic retrieval (ADR-018): the caller's chunks whose embedding is closest to `vector`,
+   * nearest first. `score` is the cosine similarity (1 = same direction) and `maxDistance` is a
+   * cosine distance (1 - similarity). Chunks without an embedding are not candidates here; the
+   * keyword search still finds them.
+   */
+  async searchByVector({
+    userId,
+    vector,
+    limit,
+    maxDistance,
+  }: {
+    userId: string;
+    vector: number[];
+    limit: number;
+    maxDistance: number;
+  }): Promise<ChunkHit[]> {
+    if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIMIT) {
+      throw new RangeError(`limit must be an integer from 1 to ${MAX_LIMIT}.`);
+    }
+    const literal = toEmbeddingLiteral(toUnitLength(vector));
+    // Same rule as above: the owner and status filters are in the ranking statement. Both sides
+    // are unit length, so the dot product is the cosine similarity. It is an exact scan of the
+    // caller's chunks; ADR-018 describes the pgvector index for when that becomes too slow.
+    return this.prisma.$queryRaw<ChunkHit[]>(Prisma.sql`
+      SELECT id, "documentId", "documentName", "chunkIndex", content, "pageNumber", "sheetName",
+             similarity AS score
+        FROM (
+          SELECT c.id,
+                 c."documentId",
+                 d."originalName" AS "documentName",
+                 c."chunkIndex",
+                 c.content,
+                 c."pageNumber",
+                 c."sheetName",
+                 d."createdAt",
+                 (SELECT sum(a::float8 * b::float8)
+                    FROM unnest(c.embedding, q.embedding) AS pair(a, b))::float8 AS similarity
+            FROM "DocumentChunk" c
+            JOIN "Document" d ON d.id = c."documentId"
+           CROSS JOIN (SELECT ${literal}::real[] AS embedding) q
+           WHERE d."uploadedBy" = ${userId}
+             AND d.status = 'COMPLETED'
+             AND c.embedding IS NOT NULL
+        ) ranked
+       WHERE 1 - similarity <= ${maxDistance}
+       ORDER BY similarity DESC, "createdAt" DESC, "chunkIndex" ASC
        LIMIT ${limit}`);
   }
 }

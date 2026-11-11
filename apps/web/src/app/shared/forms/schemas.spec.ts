@@ -1,6 +1,6 @@
-import { loginSchema, registerSchema, schemaFieldErrors } from './auth-schema';
+import { loginSchema, registerSchema } from './schemas';
 
-describe('auth schemas', () => {
+describe('form schemas', () => {
   it('normalizes email without changing the login password', () => {
     const result = loginSchema.safeParse({ email: '  sara@example.com  ', password: ' pass ' });
     expect(result.success).toBe(true);
@@ -36,17 +36,5 @@ describe('auth schemas', () => {
         email: 'sara@example.com',
         password: 'long password',
       });
-  });
-
-  it('turns Zod issues into localized field feedback', () => {
-    const result = registerSchema.safeParse({ name: ' ', email: 'bad', password: 'short' });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(schemaFieldErrors(result.error, 'ar')).toEqual({
-        name: ['تحقق من الاسم.'],
-        email: ['تحقق من البريد الإلكتروني.'],
-        password: ['تحقق من كلمة المرور.'],
-      });
-    }
   });
 });

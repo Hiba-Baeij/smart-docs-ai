@@ -1,10 +1,13 @@
 import { DOCUMENT } from '@angular/common';
-import { Injectable, inject, signal } from '@angular/core';
-import { arabic } from './messages.ar';
-import { english, type MessageKey } from './messages.en';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { AVAILABLE_LOCALES, DEFAULT_LOCALE, LOCALES, type Locale, isLocale } from './locales';
+import type { MessageKey } from './messages.en';
 
-export type Locale = 'en' | 'ar';
+export type { Locale } from './locales';
+
 const KEY = 'smartdocs.locale';
+/** Saved next to the language so `bootstrap-prefs.js` can set the direction without a language list. */
+const DIR_KEY = 'smartdocs.dir';
 
 @Injectable({ providedIn: 'root' })
 export class LocaleService {
@@ -13,12 +16,31 @@ export class LocaleService {
   private readonly _current = signal<Locale>(this.initialLocale());
   readonly current = this._current.asReadonly();
 
+  /** Every supported language, in registry order. */
+  readonly available = AVAILABLE_LOCALES;
+  readonly dir = computed(() => LOCALES[this._current()].dir);
+  /** The language the switcher moves to next (the other one, while there are two). */
+  readonly next = computed(() => {
+    const index = this.available.indexOf(this._current());
+    return this.available[(index + 1) % this.available.length];
+  });
+
   constructor() {
     this.apply(this._current());
   }
 
-  t(key: MessageKey): string {
-    return this._current() === 'ar' ? (arabic[key] ?? english[key]) : english[key];
+  /** The text for `key` in the current language; `{name}` placeholders are filled from `params`. */
+  t(key: MessageKey, params?: Readonly<Record<string, string | number>>): string {
+    const text =
+      LOCALES[this._current()].messages[key] ?? LOCALES[DEFAULT_LOCALE].messages[key] ?? key;
+    return params
+      ? text.replace(/\{(\w+)\}/g, (match, name: string) => String(params[name] ?? match))
+      : text;
+  }
+
+  /** A language's own name, e.g. for the switcher. */
+  nativeName(locale: Locale): string {
+    return LOCALES[locale].nativeName;
   }
 
   set(locale: Locale): void {
@@ -31,20 +53,23 @@ export class LocaleService {
     }
   }
 
-  toggle(): void {
-    this.set(this._current() === 'ar' ? 'en' : 'ar');
-  }
-
   private initialLocale(): Locale {
     try {
-      return this.window?.localStorage.getItem(KEY) === 'ar' ? 'ar' : 'en';
+      const saved = this.window?.localStorage.getItem(KEY);
+      return isLocale(saved) ? saved : DEFAULT_LOCALE;
     } catch {
-      return 'en';
+      return DEFAULT_LOCALE;
     }
   }
 
   private apply(locale: Locale): void {
     this.document.documentElement.lang = locale;
-    this.document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
+    this.document.documentElement.dir = LOCALES[locale].dir;
+    try {
+      // Also on start-up, so a language saved before this key existed gets its direction too.
+      this.window?.localStorage.setItem(DIR_KEY, LOCALES[locale].dir);
+    } catch {
+      // Without storage the next load starts left-to-right until Angular applies the language.
+    }
   }
 }

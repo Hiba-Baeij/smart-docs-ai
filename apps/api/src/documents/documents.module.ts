@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import { AiModule } from '../ai/ai.module';
 import { AuthModule } from '../auth/auth.module';
 import { CHUNK_DOCUMENT } from '../chunking/chunk-document.token';
 import { chunkDocument } from '../chunking/chunker';
@@ -22,6 +23,7 @@ import { UploadDocumentService } from './upload-document.service';
   imports: [
     AuthModule,
     PrismaModule,
+    AiModule,
     // FileInterceptor reads these options. Memory storage: the file lives only as a Buffer for
     // the length of the request and never touches the disk (ADR-006). `fileSize` makes multer
     // stop reading and discard the rest of an oversized body (413, nothing stored). A second

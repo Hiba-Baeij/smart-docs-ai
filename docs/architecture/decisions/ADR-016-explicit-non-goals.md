@@ -12,7 +12,7 @@ prevents both scope creep and the false impression that the design forgot someth
 
 | Non-goal | Reason | Upgrade path |
 |---|---|---|
-| pgvector semantic search | Unverified extension/Prisma support; Arabic FTS must be measured first | Implement `ChunkRetriever` with a vector adapter; add `embedding` column and index |
+| ~~Semantic search~~ | Done in ADR-018 (hybrid keyword + vector retrieval, real[] storage) | pgvector index, ADR-018 |
 | Streaming answers | Adds SSE, partial persistence, and client complexity | Add `generateStream` to `LlmProvider`; persist on completion |
 | Background queue | Synchronous is adequate at this size | Extract processing service; add job table or Redis; status model already exists |
 | Refresh tokens | Rotation and revocation design not needed yet | Add token entity, rotation, reuse detection |

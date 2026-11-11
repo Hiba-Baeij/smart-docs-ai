@@ -10,7 +10,7 @@ import { NotificationService } from '../../core/notifications/notification.servi
 import { EmptyState } from '../../shared/empty-state';
 import { ErrorBanner } from '../../shared/error-banner';
 import { StatusBadge } from '../../shared/status-badge';
-import { documentState, failedDocumentMessage, stalledMessage } from './document-state';
+import { documentState, failedDocumentMessage, STALLED_MESSAGE } from './document-state';
 import { DocumentsApi } from './documents.api';
 import { DocumentsStore } from './documents.store';
 
@@ -58,9 +58,9 @@ export class DocumentDetail {
     const detail = this.detail();
     switch (this.state()) {
       case 'failed':
-        return failedDocumentMessage(detail?.errorCode ?? null, this.locale.current());
+        return this.locale.t(failedDocumentMessage(detail?.errorCode ?? null));
       case 'stalled':
-        return stalledMessage(this.locale.current());
+        return this.locale.t(STALLED_MESSAGE);
       default:
         return null;
     }

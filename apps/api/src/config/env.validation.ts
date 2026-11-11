@@ -72,6 +72,12 @@ export const envSchema = Joi.object({
   LLM_MAX_OUTPUT_TOKENS: Joi.number().integer().min(1).default(700),
   LLM_TIMEOUT_MS: Joi.number().integer().min(1).default(20_000),
 
+  // Semantic retrieval (ADR-018). Empty with the openai provider: keyword-only retrieval.
+  EMBEDDING_MODEL: Joi.string().allow('').optional(),
+  EMBEDDING_TIMEOUT_MS: Joi.number().integer().min(1).default(10_000),
+  // Cosine distance (0 = same meaning, 2 = opposite) above which a vector match is dropped.
+  VECTOR_MAX_DISTANCE: Joi.number().min(0).max(2).default(0.5),
+
   RETRIEVAL_TOP_K: Joi.number().integer().min(1).default(6),
   RETRIEVAL_CANDIDATES: Joi.number()
     .integer()

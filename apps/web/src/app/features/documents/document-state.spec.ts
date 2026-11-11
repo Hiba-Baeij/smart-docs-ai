@@ -1,4 +1,11 @@
-import { STALLED_AFTER_MS, documentState, failedDocumentMessage, stalledMessage } from './document-state';
+import { english } from '../../core/i18n/messages.en';
+import { arabic } from '../../core/i18n/messages.ar';
+import {
+  STALLED_AFTER_MS,
+  STALLED_MESSAGE,
+  documentState,
+  failedDocumentMessage,
+} from './document-state';
 
 const NOW = Date.parse('2026-10-31T12:00:00.000Z');
 const ago = (ms: number) => new Date(NOW - ms).toISOString();
@@ -36,8 +43,8 @@ describe('documentState', () => {
 
 describe('failedDocumentMessage', () => {
   it('gives actionable Arabic feedback for a scanned PDF and a stalled upload', () => {
-    expect(failedDocumentMessage('EMPTY_EXTRACTION', 'ar')).toContain('نص قابل للتحديد');
-    expect(stalledMessage('ar')).toContain('ارفعه مرة أخرى');
+    expect(arabic[failedDocumentMessage('EMPTY_EXTRACTION')]).toContain('نص قابل للتحديد');
+    expect(arabic[STALLED_MESSAGE]).toContain('ارفعه مرة أخرى');
   });
   it.each([
     ['EMPTY_EXTRACTION', /scanned PDF/],
@@ -47,6 +54,6 @@ describe('failedDocumentMessage', () => {
     ['INTERNAL', /our side/],
     [null, /our side/],
   ] as const)('explains %s', (code, expected) => {
-    expect(failedDocumentMessage(code)).toMatch(expected);
+    expect(english[failedDocumentMessage(code)]).toMatch(expected);
   });
 });
