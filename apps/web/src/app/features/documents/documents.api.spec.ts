@@ -2,6 +2,7 @@ import { HttpEventType, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import type { DocumentDetail, DocumentPage, DocumentSummary } from '@smartdocs/contracts';
+import { listQuery } from '../../shared/data/types';
 import { DocumentsApi } from './documents.api';
 
 const SUMMARY: DocumentSummary = {
@@ -32,7 +33,7 @@ describe('DocumentsApi', () => {
     let result: DocumentPage | undefined;
     const page: DocumentPage = { items: [SUMMARY], page: 2, pageSize: 10, total: 11 };
 
-    api.list(2, 10).subscribe((value) => (result = value));
+    api.list(listQuery({ page: 2, pageSize: 10 })).subscribe((value) => (result = value));
     const request = backend.expectOne('/api/documents?page=2&pageSize=10');
     request.flush(page);
 
@@ -40,10 +41,18 @@ describe('DocumentsApi', () => {
     expect(result).toEqual(page);
   });
 
-  it('list defaults to the first page of 20', () => {
-    api.list().subscribe();
-
+  it('list sends a status filter only when it is set', () => {
+    api.list(listQuery({ pageSize: 20, filters: { status: undefined } })).subscribe();
     backend.expectOne('/api/documents?page=1&pageSize=20').flush({ items: [] });
+
+    api.list(listQuery({ pageSize: 20, filters: { status: 'FAILED' } })).subscribe();
+    backend.expectOne('/api/documents?page=1&pageSize=20&status=FAILED').flush({ items: [] });
+  });
+
+  it('list sends no sort fields unless a sort is chosen (the API rejects unknown fields)', () => {
+    api.list(listQuery({ pageSize: 20, sort: { active: 'createdAt', direction: 'asc' } })).subscribe();
+
+    backend.expectOne('/api/documents?page=1&pageSize=20&sort=createdAt&order=asc').flush({ items: [] });
   });
 
   it('detail gets /api/documents/:id', () => {

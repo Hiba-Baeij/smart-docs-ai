@@ -617,29 +617,6 @@ a.doc-card:active {
   color: var(--text-muted);
 }
 
-/* delete confirmation */
-.confirm {
-  position: absolute;
-  z-index: 3;
-  inset-block-start: 4.25rem;
-  inset-inline: 1rem;
-  max-width: 24rem;
-  padding: 1rem;
-  border: 1.5px solid var(--border);
-  border-radius: 1rem;
-  background: var(--surface-raised);
-  box-shadow: var(--shadow);
-  animation: pop 0.25s ease both;
-}
-.confirm p {
-  margin: 0 0 0.75rem;
-}
-.confirm-actions {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: flex-end;
-}
-
 /* sources panel (wide screens only) */
 .docs-panel {
   display: none;
@@ -742,7 +719,6 @@ a.doc-card:active {
   .blank,
   .empty-thread,
   .docs-panel,
-  .confirm,
   .jump,
   .blank-art,
   .skeleton,

@@ -1,217 +1,37 @@
-.page-title {
-  margin: 0 0 1.25rem;
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  letter-spacing: -0.02em;
-}
 h2 {
-  margin: 0 0 0.75rem;
+  margin: 1.75rem 0 0.85rem;
   font-size: 1.125rem;
 }
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
 
-/* Each row reads as a card; the table markup stays for accessibility. */
-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 0.5rem;
-}
-th {
-  padding: 0.25rem 1rem;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-align: start;
-}
-td {
-  padding: 0.75rem 1rem;
-  border-block: 1px solid var(--border);
-  background: var(--surface);
-  text-align: start;
-  vertical-align: middle;
-  transition:
-    background-color 0.18s ease,
-    border-color 0.18s ease;
-}
-td:first-child {
-  border-inline-start: 1px solid var(--border);
-  border-start-start-radius: 1rem;
-  border-end-start-radius: 1rem;
-}
-td:last-child {
-  border-inline-end: 1px solid var(--border);
-  border-start-end-radius: 1rem;
-  border-end-end-radius: 1rem;
-}
-tbody tr {
-  animation: row-in 0.35s ease-out both;
-}
-tbody tr:hover td {
-  background: var(--surface-raised);
-  border-color: var(--accent);
-}
-.number {
-  text-align: end;
-}
-td a {
-  font-weight: 700;
+.name {
+  /* A 24px-tall target at least (WCAG 2.5.8): the bare line box is 21px. */
+  display: inline-block;
+  padding-block: 0.15rem;
   color: var(--accent);
+  font-weight: 700;
   text-decoration: none;
   overflow-wrap: anywhere;
 
   &:hover {
     text-decoration: underline;
   }
+
   &:focus-visible {
     outline: 3px solid var(--focus);
     outline-offset: 2px;
+    border-radius: 0.25rem;
   }
 }
+
 .note {
   margin: 0.25rem 0 0;
+  color: var(--text-muted);
   font-size: 0.875rem;
-  color: var(--text-muted);
 }
 
-.file-type {
-  display: inline-grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  margin-inline-end: 0.4rem;
-  border-radius: 0.6rem;
-  background: var(--accent-surface);
-  color: var(--accent);
-  vertical-align: middle;
-
-  svg {
-    width: 1.1rem;
-    height: 1.1rem;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.8;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-  &.pdf {
-    background: var(--error-surface);
-    color: var(--error);
-  }
-  &.xlsx {
-    background: var(--success-surface);
-    color: var(--success);
-  }
-}
-
-.loading {
-  color: var(--text-muted);
-}
-.skeleton-list {
-  display: grid;
-  gap: 0.5rem;
-}
-.skeleton-row {
-  height: 3.5rem;
-  border-radius: 1rem;
-  background: linear-gradient(
-    100deg,
-    var(--surface-muted) 30%,
-    var(--surface-raised) 50%,
-    var(--surface-muted) 70%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.4s linear infinite;
-}
-
-.pager {
-  display: flex;
+.type {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 1rem;
-
-  button {
-    min-height: 2.75rem;
-    padding: 0.4rem 1rem;
-    border: 1px solid var(--border);
-    border-radius: 0.75rem;
-    background: var(--surface);
-    font: inherit;
-    cursor: pointer;
-
-    &:hover:not(:disabled) {
-      border-color: var(--accent);
-    }
-    &:disabled {
-      cursor: not-allowed;
-      opacity: 0.5;
-    }
-    &:focus-visible {
-      outline: 3px solid var(--focus);
-      outline-offset: 2px;
-    }
-  }
-}
-
-@media (max-width: 640px) {
-  table,
-  tbody,
-  tr,
-  td {
-    display: block;
-  }
-  thead {
-    display: none;
-  }
-  tr {
-    margin-block: 0.75rem;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid var(--border);
-    border-radius: 1rem;
-    background: var(--surface);
-  }
-  td,
-  td:first-child,
-  td:last-child {
-    padding: 0.25rem 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    text-align: start;
-  }
-  tbody tr:hover td {
-    background: transparent;
-  }
-  td::before {
-    content: attr(data-label) ': ';
-    color: var(--text-muted);
-  }
-  td:first-child::before {
-    content: none;
-  }
-}
-
-@keyframes row-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@keyframes shimmer {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
-  }
+  gap: 0.5rem;
+  font-weight: 600;
 }

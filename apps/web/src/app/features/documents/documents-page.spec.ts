@@ -1,14 +1,15 @@
 import { HttpErrorResponse, HttpEvent } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import type { DocumentPage, DocumentSummary, UserSummary } from '@smartdocs/contracts';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { AuthStore } from '../../core/auth/auth.store';
 import { LocaleService } from '../../core/i18n/locale.service';
+import type { ListQuery, RequestOptions } from '../../shared/data/types';
 import { STALLED_AFTER_MS } from './document-state';
 import { DocumentsApi } from './documents.api';
-import { DocumentsPage } from './documents-page';
+import { DocumentsPage, POLL_INTERVAL_MS } from './documents-page';
 import { PAGE_SIZE } from './documents.store';
 
 const user = (id: string): UserSummary => ({
@@ -44,9 +45,15 @@ class FakeDocumentsApi {
   listCalls: number[] = [];
   answer: (pageNumber: number) => Observable<DocumentPage> = () => of(page([]));
 
-  list(pageNumber: number): Observable<DocumentPage> {
-    this.listCalls.push(pageNumber);
-    return this.answer(pageNumber);
+  queries: ListQuery[] = [];
+
+  options: RequestOptions[] = [];
+
+  list(query: ListQuery, options: RequestOptions = {}): Observable<DocumentPage> {
+    this.queries.push(query);
+    this.options.push(options);
+    this.listCalls.push(query.page);
+    return this.answer(query.page);
   }
   upload(): Observable<HttpEvent<DocumentSummary>> {
     return new Subject<HttpEvent<DocumentSummary>>();
@@ -98,7 +105,10 @@ describe('DocumentsPage', () => {
 
       expect(q('.loading')?.textContent).toContain('Loading');
       expect(listText()).not.toContain('no documents');
-      expect(q('table')).toBeNull();
+      // Skeleton rows hold the table's shape; there are no real rows yet.
+      expect(qa('tbody .skeleton-row').length).toBeGreaterThan(0);
+      expect(q('tbody .data-row')).toBeNull();
+      expect(q('table')!.getAttribute('aria-busy')).toBe('true');
     });
 
     it('error: shows the banner with a retry, and neither the list nor the empty state', async () => {
@@ -229,13 +239,20 @@ describe('DocumentsPage', () => {
     });
   });
 
-  describe('paging', () => {
-    it('has no pager for a single page', async () => {
+  describe('paging (app-data-table)', () => {
+    const range = () => q('.mat-mdc-paginator-range-label')?.textContent?.trim();
+    const next = () => q<HTMLButtonElement>('.mat-mdc-paginator-navigation-next')!;
+    const previous = () => q<HTMLButtonElement>('.mat-mdc-paginator-navigation-previous')!;
+    /** Material keeps a disabled paginator button focusable and marks it with aria-disabled. */
+    const disabled = (button: HTMLButtonElement) =>
+      button.disabled || button.getAttribute('aria-disabled') === 'true';
+
+    it('has no paginator for a single page', async () => {
       api.answer = () => of(page([doc('a')]));
 
       await open();
 
-      expect(q('.pager')).toBeNull();
+      expect(q('mat-paginator')).toBeNull();
     });
 
     it('shows where you are, and disables Previous on the first page', async () => {
@@ -243,20 +260,20 @@ describe('DocumentsPage', () => {
 
       await open();
 
-      expect(q('.pager span')!.textContent).toBe('Page 1 of 3');
-      expect(qa('.pager button')[0].hasAttribute('disabled')).toBe(true);
-      expect(qa('.pager button')[1].hasAttribute('disabled')).toBe(false);
+      expect(range()).toBe('1–20 of 45');
+      expect(disabled(previous())).toBe(true);
+      expect(disabled(next())).toBe(false);
     });
 
     it('Next and Previous ask the API for the neighbouring page', async () => {
       api.answer = (n) => of(page([doc(`p${n}`)], n, 45));
       await open();
 
-      qa('.pager button')[1].click();
+      next().click();
       await settle();
-      expect(q('.pager span')!.textContent).toBe('Page 2 of 3');
+      expect(range()).toBe('21–40 of 45');
 
-      qa('.pager button')[0].click();
+      previous().click();
       await settle();
       expect(api.listCalls).toEqual([1, 2, 1]);
     });
@@ -264,12 +281,45 @@ describe('DocumentsPage', () => {
     it('disables Next on the last page', async () => {
       api.answer = (n) => of(page([doc('z')], n, 45));
       await open();
-      qa('.pager button')[1].click();
+      next().click();
       await settle();
-      qa('.pager button')[1].click();
+      next().click();
       await settle();
 
-      expect(qa('.pager button')[1].hasAttribute('disabled')).toBe(true);
+      expect(disabled(next())).toBe(true);
+    });
+
+    it('a new page size starts again at page 1 with that size', async () => {
+      api.answer = (n) => of(page([doc(`p${n}`)], n, 45));
+      await open();
+      next().click();
+      await settle();
+
+      (
+        fixture.debugElement.query((d) => d.name === 'app-data-table').componentInstance as {
+          pageSizeChange: { emit: (size: number) => void };
+        }
+      ).pageSizeChange.emit(50);
+      await settle();
+
+      expect(api.queries.at(-1)).toMatchObject({ page: 1, pageSize: 50 });
+    });
+  });
+
+  describe('row actions', () => {
+    it('offers Open and Delete for each row, named after the document', async () => {
+      api.answer = () => of(page([doc('report')]));
+      await open();
+
+      const trigger = q<HTMLButtonElement>('td.actions-col button')!;
+      expect(trigger.getAttribute('aria-label')).toBe('Actions for report.pdf');
+      trigger.click();
+      await settle();
+
+      const items = Array.from(document.querySelectorAll('.app-menu-panel [mat-menu-item]')).map((item) =>
+        item.textContent?.trim(),
+      );
+      expect(items).toEqual(['Open', 'Delete this document']);
     });
   });
 
@@ -277,7 +327,7 @@ describe('DocumentsPage', () => {
     it('reads the first page again, where the newest document is', async () => {
       api.answer = (n) => of(page([doc(`p${n}`)], n, 45));
       await open();
-      qa('.pager button')[1].click();
+      q<HTMLButtonElement>('.mat-mdc-paginator-navigation-next')!.click();
       await settle();
       expect(api.listCalls).toEqual([1, 2]);
 
@@ -290,6 +340,98 @@ describe('DocumentsPage', () => {
       await settle();
 
       expect(api.listCalls).toEqual([1, 2, 1]);
+    });
+  });
+
+  describe('the status filter', () => {
+    const chip = (label: string) => qa('app-filter-chips button').find((b) => b.textContent!.trim() === label)!;
+
+    it('offers All and each status, with All selected by default', async () => {
+      await open();
+
+      expect(qa('app-filter-chips button').map((b) => b.textContent!.trim())).toEqual([
+        'All',
+        'Processing',
+        'Ready',
+        'Failed',
+      ]);
+      expect(q('app-filter-chips')!.getAttribute('aria-label')).toBe('Filter by status');
+      expect(chip('All').getAttribute('aria-pressed')).toBe('true');
+    });
+
+    it('asks the API for that status only, from page 1, and marks the chip', async () => {
+      api.answer = (n) => of(page([doc(`p${n}`)], n, 45));
+      await open();
+      q<HTMLButtonElement>('.mat-mdc-paginator-navigation-next')!.click();
+      await settle();
+
+      chip('Failed').click();
+      await settle();
+
+      expect(api.queries.at(-1)).toMatchObject({ page: 1, filters: { status: 'FAILED' } });
+      expect(chip('Failed').getAttribute('aria-pressed')).toBe('true');
+      expect(TestBed.inject(Router).url).toBe('/?status=FAILED');
+    });
+
+    it('says when nothing has that status, and offers the way back to all documents', async () => {
+      await open();
+      chip('Failed').click();
+      await settle();
+
+      expect(listText()).toContain('No documents with this status.');
+      qa('app-empty-state button')[0].click();
+      await settle();
+
+      expect(api.queries.at(-1)!.filters).toEqual({ status: undefined });
+      expect(listText()).toContain('You have no documents yet');
+    });
+  });
+
+  describe('while a document is processing', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    async function openWithFakeTime(): Promise<void> {
+      fixture = TestBed.createComponent(DocumentsPage);
+      fixture.detectChanges();
+      await vi.advanceTimersByTimeAsync(0);
+      fixture.detectChanges();
+    }
+
+    it('reads the list again in the background until it is done, then stops', async () => {
+      let status: DocumentSummary['status'] = 'PROCESSING';
+      api.answer = () => of(page([doc('fresh', { status })]));
+      await openWithFakeTime();
+      expect(api.options).toEqual([{}]);
+
+      await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS);
+      fixture.detectChanges();
+      expect(api.options).toEqual([{}, { background: true }]);
+      // A background read keeps the rows: no skeleton, no dimming.
+      expect(q('tbody .data-row')).not.toBeNull();
+
+      status = 'COMPLETED';
+      await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS);
+      fixture.detectChanges();
+      expect(q('app-status-badge')!.textContent!.trim()).toBe('Ready');
+
+      await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS * 3);
+      expect(api.options).toHaveLength(3);
+    });
+
+    it('does not poll for a list with nothing processing, or a stalled upload that will never finish', async () => {
+      api.answer = () =>
+        of(
+          page([
+            doc('ready'),
+            doc('stuck', { status: 'PROCESSING', createdAt: new Date(Date.now() - STALLED_AFTER_MS - 1).toISOString() }),
+          ]),
+        );
+      await openWithFakeTime();
+
+      await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS * 3);
+
+      expect(api.options).toHaveLength(1);
     });
   });
 

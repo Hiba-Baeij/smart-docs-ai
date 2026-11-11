@@ -59,7 +59,13 @@ describe('Shell', () => {
 
   const root = () => harness.routeNativeElement as HTMLElement;
   const q = <T extends HTMLElement>(selector: string) => root().querySelector<T>(selector);
-  const button = () => q<HTMLButtonElement>('button.sign-out')!;
+  const trigger = () => q<HTMLButtonElement>('button.user-trigger')!;
+  /** The Sign out item lives in the user menu (an overlay), so it is found in the document. */
+  const button = () => document.querySelector<HTMLButtonElement>('.user-menu-panel button.sign-out')!;
+  async function openMenu(): Promise<void> {
+    trigger().click();
+    await settle();
+  }
   const url = () => TestBed.inject(Router).url;
 
   async function settle(): Promise<void> {
@@ -69,6 +75,7 @@ describe('Shell', () => {
   }
 
   async function clickSignOut(): Promise<void> {
+    await openMenu();
     button().click();
     await settle();
   }
@@ -76,25 +83,29 @@ describe('Shell', () => {
   const rejectWith = (error: unknown) => () => Promise.reject(error);
 
   describe('the header', () => {
-    it('switches navigation copy and direction to Arabic', () => {
+    it('switches navigation copy and direction to Arabic', async () => {
       TestBed.inject(LocaleService).set('ar');
       harness.detectChanges();
       expect(q('nav')?.textContent).toContain('المستندات');
+      await openMenu();
       expect(button().textContent).toContain('تسجيل الخروج');
       expect(document.documentElement.dir).toBe('rtl');
     });
-    it('shows the signed-in user and a Sign out button, around the page', () => {
+    it('shows the signed-in user, and a Sign out item with their name and email in the menu', async () => {
       expect(q('.user-name')?.textContent).toBe('Sara Ahmed');
+      expect(q('.avatar')?.textContent).toBe('S');
+      await openMenu();
+      expect(document.querySelector('.who-email')?.textContent).toBe('sara@example.com');
       expect(button().textContent).toContain('Sign out');
       expect(q('main')?.textContent).toContain('a protected page');
     });
 
-    it('shows no name when there is no user, but still offers Sign out', () => {
+    it('shows no user menu when there is no user', () => {
       store.user.set(null);
       harness.detectChanges();
 
       expect(q('.user-name')).toBeNull();
-      expect(button()).not.toBeNull();
+      expect(trigger()).toBeNull();
     });
 
     it('shows a name that contains HTML as plain text, never as markup', () => {
@@ -114,15 +125,17 @@ describe('Shell', () => {
       expect(url()).toBe('/login');
     });
 
-    it('disables the button while it works, so a double click sends one request', async () => {
+    it('shows it is working and ignores a second request, so a double click sends one', async () => {
       let finish: () => void = () => undefined;
       store.outcome = () => new Promise<void>((resolve) => (finish = resolve));
 
+      await openMenu();
       button().click();
       await settle();
-      expect(button().disabled).toBe(true);
+      expect(trigger().getAttribute('aria-busy')).toBe('true');
 
-      button().click(); // ignored: the button is disabled and the handler also guards
+      await openMenu();
+      expect(button()?.disabled ?? true).toBe(true); // the item is disabled, and the handler also guards
       await settle();
       expect(store.logoutCalls).toBe(1);
 

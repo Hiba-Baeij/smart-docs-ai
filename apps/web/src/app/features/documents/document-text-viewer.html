@@ -1,0 +1,27 @@
+<div class="toolbar">
+  <app-search-input
+    class="search"
+    [label]="locale.t('docs.detail.search')"
+    [clearLabel]="locale.t('docs.detail.clearSearch')"
+    [(value)]="query"
+    (submitted)="step(1)"
+  />
+  @if (searching()) {
+    <span class="counter" role="status" aria-live="polite">{{ counter() }}</span>
+    <button type="button" appIconButton [label]="locale.t('docs.detail.prevMatch')" [disabled]="total() === 0" (click)="step(-1)">
+      <svg lucideChevronUp></svg>
+    </button>
+    <button type="button" appIconButton [label]="locale.t('docs.detail.nextMatch')" [disabled]="total() === 0" (click)="step(1)">
+      <svg lucideChevronDown></svg>
+    </button>
+  }
+  <app-copy-button [value]="text()" />
+</div>
+
+<pre class="text" dir="auto">@for (segment of result().segments; track $index) {@if (segment.match >= 0) {<mark [attr.data-match]="segment.match" [class.active]="segment.match === current()">{{ segment.text }}</mark>} @else {<ng-container>{{ segment.text }}</ng-container>}}</pre>
+
+@if (cut() && !searching()) {
+  <button type="button" appButton variant="ghost" size="sm" class="link" (click)="toggleShowAll()">
+    {{ showAll() ? locale.t('docs.detail.showLess') : locale.t('docs.detail.showAll') + ' ' + text().length + ' ' + locale.t('docs.detail.characters') }}
+  </button>
+}

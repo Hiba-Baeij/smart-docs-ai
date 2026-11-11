@@ -1,13 +1,16 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { MatDialog } from '@angular/material/dialog';
 import { Router, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import type { DocumentDetail as DocumentDetailData } from '@smartdocs/contracts';
 import { LocaleService } from '../../core/i18n/locale.service';
+import { NotificationService } from '../../core/notifications/notification.service';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { STALLED_AFTER_MS } from './document-state';
-import { DocumentDetail, TEXT_PREVIEW_CHARACTERS } from './document-detail';
+import { DocumentDetail } from './document-detail';
+import { TEXT_PREVIEW_CHARACTERS } from './document-text-viewer';
 import { DocumentsApi } from './documents.api';
 import { DocumentsStore } from './documents.store';
 
@@ -97,6 +100,17 @@ describe('DocumentDetail', () => {
     await settle();
   }
 
+  const moreActions = () => q<HTMLButtonElement>('app-menu button')!;
+  /** Opens the header ⋮ menu and chooses the item: deleting lives there. */
+  async function chooseFromMenu(label: RegExp): Promise<void> {
+    moreActions().click();
+    await settle();
+    Array.from(document.querySelectorAll<HTMLButtonElement>('.app-menu-panel [mat-menu-item]'))
+      .find((item) => label.test(item.textContent ?? ''))!
+      .click();
+    await settle();
+  }
+
   const button = (label: RegExp) =>
     Array.from(root().querySelectorAll<HTMLButtonElement>('button')).find((b) =>
       label.test(b.textContent ?? ''),
@@ -154,9 +168,12 @@ describe('DocumentDetail', () => {
 
       expect(text()).toContain('النص المستخرج');
       expect(text()).toContain('تاريخ الرفع');
-      button(/حذف هذا المستند/).click();
-      harness.detectChanges();
-      expect(q('[role="alertdialog"]')?.textContent).toContain('لا يمكن التراجع');
+      await chooseFromMenu(/حذف هذا المستند/);
+      const dialog = document.querySelector('app-confirm-dialog');
+      expect(dialog?.textContent).toContain('حذف هذا المستند؟');
+      expect(dialog?.textContent).toContain('لا يمكن التراجع');
+      expect(dialog?.closest('[dir]')?.getAttribute('dir')).toBe('rtl');
+      TestBed.inject(MatDialog).closeAll();
       locale.set('en');
     });
     it('shows its facts', async () => {
@@ -225,7 +242,7 @@ describe('DocumentDetail', () => {
 
       expect(q('h1')!.textContent).toBe('<img src=x onerror=alert(1)>.pdf');
       expect(root().querySelector('img')).toBeNull();
-      expect(q('.preview')!.textContent).toBe('<b>preview</b>');
+      expect(q('td.primary')!.textContent!.trim()).toBe('<b>preview</b>');
     });
   });
 
@@ -246,8 +263,8 @@ describe('DocumentDetail', () => {
 
       expect(q('.note')!.textContent).toContain('scanned PDF');
       expect(q('pre.text')).toBeNull();
-      expect(q('#chunks-heading')).toBeNull();
-      expect(button(/Delete this document/)).toBeDefined();
+      expect(q('app-tabs')).toBeNull();
+      expect(moreActions()).not.toBeNull();
     });
 
     it('stalled: says the upload did not finish and that delete and re-upload is the way out', async () => {
@@ -270,119 +287,138 @@ describe('DocumentDetail', () => {
     });
   });
 
-  describe('deleting', () => {
-    it('moves focus into confirmation and returns it after cancellation', async () => {
+  describe('deleting (confirm dialog → request → toast)', () => {
+    const dialog = () => document.querySelector<HTMLElement>('app-confirm-dialog');
+    const dialogButton = (label: RegExp) =>
+      Array.from(document.querySelectorAll<HTMLButtonElement>('app-confirm-dialog button')).find(
+        (b) => label.test(b.textContent ?? ''),
+      )!;
+
+    async function askToDelete(): Promise<void> {
+      await chooseFromMenu(/Delete this document/);
+    }
+
+    async function confirmInDialog(): Promise<void> {
+      dialogButton(/Yes, delete it/).click();
+      await settle();
+      await settle();
+    }
+
+    afterEach(() => TestBed.inject(MatDialog).closeAll());
+
+    it('asks in a dialog that names the document and says it cannot be undone', async () => {
       await open();
-      button(/Delete this document/).click();
-      harness.detectChanges();
-      await harness.fixture.whenStable();
-      expect(document.activeElement).toBe(button(/Yes, delete it/));
-      button(/Cancel/).click();
-      harness.detectChanges();
-      await harness.fixture.whenStable();
-      expect(document.activeElement).toBe(button(/Delete this document/));
-    });
-    it('asks first, and cancelling deletes nothing', async () => {
-      await open();
+      await askToDelete();
 
-      button(/Delete this document/).click();
-      harness.detectChanges();
-      expect(q('[role="alertdialog"]')!.textContent).toContain('This cannot be undone');
-      expect(q('[role="alertdialog"]')!.textContent).toContain('handbook.pdf');
-
-      button(/Cancel/).click();
-      harness.detectChanges();
-
-      expect(q('[role="alertdialog"]')).toBeNull();
+      expect(dialog()!.textContent).toContain('Delete this document?');
+      expect(dialog()!.textContent).toContain('handbook.pdf');
+      expect(dialog()!.textContent).toContain('This cannot be undone');
       expect(api.removeCalls).toEqual([]);
+    });
+
+    it('starts on Cancel, so Enter cannot delete by accident, and cancelling deletes nothing', async () => {
+      await open();
+      await askToDelete();
+      expect(document.activeElement).toBe(dialogButton(/Cancel/));
+
+      dialogButton(/Cancel/).click();
+      await settle();
+
+      expect(dialog()).toBeNull();
+      expect(api.removeCalls).toEqual([]);
+      expect(url()).toBe('/documents/d1');
+    });
+
+    it('returns focus to the ⋮ menu button after a cancel', async () => {
+      await open();
+      moreActions().focus();
+      await askToDelete();
+      expect(moreActions().disabled).toBe(false);
+
+      dialogButton(/Cancel/).click();
+      await settle();
+
+      expect(document.activeElement).toBe(moreActions());
     });
 
     it('says "1 chunk", not "1 chunks"', async () => {
       api.detailAnswer = () => of(detail({ chunkCount: 1 }));
       await open();
+      await askToDelete();
 
-      button(/Delete this document/).click();
-      harness.detectChanges();
-
-      expect(q('[role="alertdialog"]')!.textContent).toMatch(/its\s+1 chunk\?/);
+      expect(dialog()!.textContent).toMatch(/its 1 chunk will be deleted/);
     });
 
-    it('confirming deletes it, forgets it in the list, and goes back to the list', async () => {
+    it('confirming deletes it, forgets it in the list, says so, and goes back to the list', async () => {
+      const success = vi.spyOn(TestBed.inject(NotificationService), 'success');
       await open();
-      button(/Delete this document/).click();
-      harness.detectChanges();
+      await askToDelete();
 
-      button(/Yes, delete it/).click();
-      await settle();
+      await confirmInDialog();
 
       expect(api.removeCalls).toEqual(['d1']);
       expect(store.forgotten).toEqual(['d1']);
+      expect(success).toHaveBeenCalledWith('document-delete-d1', 'Document deleted.');
       expect(url()).toBe('/documents');
     });
 
-    it('disables itself while the delete is in flight, so a double click sends one request', async () => {
-      const pending = new Subject<void>();
-      api.removeAnswer = () => pending;
-      await open();
-      button(/Delete this document/).click();
-      harness.detectChanges();
-
-      button(/Yes, delete it/).click();
-      harness.detectChanges();
-      const second = button(/Deleting/);
-      second.click();
-
-      expect(second.disabled).toBe(true);
-      expect(api.removeCalls).toHaveLength(1);
-      pending.next();
-      pending.complete();
-    });
-
-    it('sends one delete even if the handler runs twice before the first answer (not only a disabled button)', async () => {
+    it('opens one dialog and sends one request, however often it is clicked', async () => {
       const pending = new Subject<void>();
       api.removeAnswer = () => pending;
       await open();
       const page = harness.routeDebugElement!.componentInstance as {
-        confirmDelete: () => Promise<void>;
+        askToDelete: (doc: DocumentDetailData) => void;
       };
 
-      void page.confirmDelete();
-      void page.confirmDelete();
+      page.askToDelete(detail());
+      page.askToDelete(detail());
+      await settle();
+      expect(document.querySelectorAll('app-confirm-dialog')).toHaveLength(1);
 
+      dialogButton(/Yes, delete it/).click();
+      await settle();
+      expect(dialogButton(/Yes, delete it/).disabled).toBe(true);
+      dialogButton(/Yes, delete it/).click();
       expect(api.removeCalls).toHaveLength(1);
+
       pending.next();
       pending.complete();
+      await settle();
     });
 
-    it('shows a failure in words and lets the person try again', async () => {
+    it('reports a failure in a toast, stays on the page, and lets the person try again', async () => {
+      const error = vi.spyOn(TestBed.inject(NotificationService), 'error');
       api.removeAnswer = () => throwError(() => new HttpErrorResponse({ status: 0 }));
       await open();
-      button(/Delete this document/).click();
-      harness.detectChanges();
+      await askToDelete();
 
-      button(/Yes, delete it/).click();
-      await settle();
+      await confirmInDialog();
 
-      expect(q('.failure')!.textContent).toContain('Cannot reach the server');
+      expect(error).toHaveBeenCalledWith(
+        'document-delete-d1',
+        expect.stringContaining('Cannot reach the server'),
+      );
+      expect(dialog()).toBeNull();
       expect(url()).toBe('/documents/d1');
-      expect(button(/Yes, delete it/).disabled).toBe(false);
+      expect(moreActions().disabled).toBe(false);
       expect(store.forgotten).toEqual([]);
     });
 
     describe('the document was already deleted somewhere else (the failure drill)', () => {
+      let error: ReturnType<typeof vi.spyOn>;
+
       beforeEach(async () => {
+        error = vi.spyOn(TestBed.inject(NotificationService), 'error');
         api.removeAnswer = () => throwError(() => notFound());
         await open();
-        button(/Delete this document/).click();
-        harness.detectChanges();
-        button(/Yes, delete it/).click();
-        await settle();
+        await askToDelete();
+        await confirmInDialog();
       });
 
       it('is not a crash and not an error: the screen says it is already gone', () => {
         expect(text()).toContain('already deleted');
         expect(q('app-error-banner')).toBeNull();
-        expect(q('.failure')).toBeNull();
+        expect(error).not.toHaveBeenCalled();
         expect(q('h1')).toBeNull();
       });
 
@@ -391,8 +427,8 @@ describe('DocumentDetail', () => {
         expect(q('a.back')!.getAttribute('href')).toBe('/documents');
       });
 
-      it('and a repeat is impossible: there is no delete button left to press', () => {
-        expect(root().querySelector('button.delete')).toBeNull();
+      it('and a repeat is impossible: there is no menu left to open', () => {
+        expect(moreActions()).toBeNull();
       });
     });
   });

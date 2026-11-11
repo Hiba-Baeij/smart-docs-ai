@@ -12,11 +12,12 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { listQuery } from '../../shared/data/types';
 import { DocumentsApi } from '../documents/documents.api';
 import { userMessage } from '../../core/http/user-message';
-import { toAppError } from '../../core/http/app-error';
+import { AppError, toAppError } from '../../core/http/app-error';
+import { createMutation } from '../../core/feedback/mutation';
 import { LocaleService } from '../../core/i18n/locale.service';
-import { NotificationService } from '../../core/notifications/notification.service';
 import { ChatStore } from './chat.store';
 import { AssistantMarkdown } from '../../shared/assistant-markdown';
 
@@ -29,13 +30,11 @@ import { AssistantMarkdown } from '../../shared/assistant-markdown';
 export class ChatPage implements OnInit {
   protected readonly store = inject(ChatStore);
   protected readonly locale = inject(LocaleService);
-  private readonly notifications = inject(NotificationService);
   private readonly documents = inject(DocumentsApi);
   private readonly injector = inject(Injector);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly drafts = signal<Record<string, string>>({});
   protected readonly draft = computed(() => this.drafts()[this.store.selectedId() ?? ''] ?? '');
-  protected readonly confirming = signal<string | null>(null);
   protected readonly unavailableDocuments = signal<Set<string>>(new Set());
   protected readonly suggestions = signal<string[]>([]);
   /** The API's exact insufficient-evidence answer; only used to style it, never to change it. */
@@ -108,7 +107,7 @@ export class ChatPage implements OnInit {
 
   ngOnInit(): void {
     void this.store.loadConversations();
-    this.documents.list(1, 100).subscribe({
+    this.documents.list(listQuery({ pageSize: 100 })).subscribe({
       next: (page) => {
         this.suggestions.set(
           page.items
@@ -123,18 +122,41 @@ export class ChatPage implements OnInit {
     });
   }
 
-  protected async create(): Promise<void> {
-    const id = await this.store.create();
-    if (id) {
-      this.notifications.success(`conversation-create-${id}`, this.locale.t('chat.createSuccess'));
-      this.focusComposer();
-    } else if (this.store.actionError()) {
-      this.notifications.error('conversation-create', userMessage(this.store.actionError()!));
+  /** The store reports a failed action as state; the mutation needs it as an error to toast it. */
+  private async orFail<T>(result: Promise<T | null | false>): Promise<T> {
+    const value = await result;
+    if (value === null || value === false) {
+      throw this.store.actionError() ?? new AppError('UNKNOWN', 'The action failed.', 0);
     }
+    return value;
+  }
+
+  /** New conversation: toast on success or failure, no double submit. */
+  protected readonly creation = createMutation(() => this.orFail(this.store.create()), {
+    toastId: () => 'conversation-create',
+    success: () => this.locale.t('chat.createSuccess'),
+    onSuccess: () => this.focusComposer(),
+  });
+
+  /** Delete: confirm dialog → request → toast, the same as everywhere else. */
+  protected readonly removal = createMutation((id: string) => this.orFail(this.store.remove(id)), {
+    confirm: () => ({
+      tone: 'danger',
+      title: this.locale.t('chat.deleteConversation'),
+      message: this.locale.t('chat.deletePrompt'),
+      confirmLabel: this.locale.t('chat.yesDelete'),
+      cancelLabel: this.locale.t('docs.detail.cancel'),
+    }),
+    toastId: (id) => `conversation-delete-${id}`,
+    loading: () => this.locale.t('docs.detail.deleting'),
+    success: () => this.locale.t('chat.deleteSuccess'),
+  });
+
+  protected create(): void {
+    void this.creation.run();
   }
 
   protected back(): void {
-    this.confirming.set(null);
     this.store.select(null);
   }
 
@@ -183,32 +205,9 @@ export class ChatPage implements OnInit {
     this.store.select(id);
   }
 
-  protected async deleteSelected(): Promise<void> {
-    const id = this.confirming();
-    if (!id) return;
-    if (await this.store.remove(id)) {
-      this.confirming.set(null);
-      this.notifications.success(`conversation-delete-${id}`, this.locale.t('chat.deleteSuccess'));
-    } else if (this.store.actionError()) {
-      this.notifications.error(`conversation-delete-${id}`, userMessage(this.store.actionError()!));
-    }
-  }
-
   protected askToDelete(): void {
-    this.confirming.set(this.store.selectedId());
-    afterNextRender(
-      () => this.host.nativeElement.querySelector<HTMLButtonElement>('.confirm button')?.focus(),
-      { injector: this.injector },
-    );
-  }
-
-  protected cancelDelete(): void {
-    this.confirming.set(null);
-    afterNextRender(
-      () =>
-        this.host.nativeElement.querySelector<HTMLButtonElement>('.thread-head .delete')?.focus(),
-      { injector: this.injector },
-    );
+    const id = this.store.selectedId();
+    if (id) void this.removal.run(id);
   }
 
   protected keydown(event: KeyboardEvent): void {

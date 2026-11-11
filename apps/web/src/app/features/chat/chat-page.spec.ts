@@ -1,6 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { MatDialog } from '@angular/material/dialog';
+import { toastState } from 'ngx-sonner';
 import { provideRouter } from '@angular/router';
 import type {
   ConversationSummary,
@@ -194,16 +196,62 @@ describe('ChatPage', () => {
     expect(button('Retry question')).toBeDefined();
   });
 
-  it('confirms deletion before removing the conversation', async () => {
-    button('Contract').click();
-    await settle();
-    button('Delete conversation').click();
-    fixture.detectChanges();
-    expect(root.querySelector('[role="alertdialog"]')).not.toBeNull();
-    button('Cancel').click();
-    fixture.detectChanges();
-    expect(root.querySelector('[role="alertdialog"]')).toBeNull();
-    expect(TestBed.inject(ChatStore).conversations()).toHaveLength(2);
+  describe('deleting a conversation', () => {
+    const dialog = () => document.querySelector<HTMLElement>('app-confirm-dialog');
+    const dialogButton = (label: RegExp) =>
+      Array.from(document.querySelectorAll<HTMLButtonElement>('app-confirm-dialog button')).find((b) =>
+        label.test(b.textContent ?? ''),
+      )!;
+    const toastOf = (id: string) => toastState.toasts().find((item) => item.id === id);
+
+    async function askToDelete(): Promise<void> {
+      button('Contract').click();
+      await settle();
+      button('Delete conversation').click();
+      await settle();
+    }
+
+    beforeEach(() => toastState.reset());
+    afterEach(() => {
+      TestBed.inject(MatDialog).closeAll();
+      toastState.reset();
+    });
+
+    it('asks in a dialog first, and cancelling deletes nothing', async () => {
+      await askToDelete();
+
+      expect(dialog()!.textContent).toContain('Delete this conversation and all its messages?');
+      expect(document.activeElement).toBe(dialogButton(/Cancel/)); // starts on the safe choice
+      dialogButton(/Cancel/).click();
+      await settle();
+
+      expect(dialog()).toBeNull();
+      expect(TestBed.inject(ChatStore).conversations()).toHaveLength(2);
+    });
+
+    it('confirming removes it and says so in a toast', async () => {
+      await askToDelete();
+
+      dialogButton(/Yes, delete/).click();
+      await settle();
+      await settle();
+
+      expect(TestBed.inject(ChatStore).conversations()).toHaveLength(1);
+      expect(toastOf('conversation-delete-one')?.title).toBe('Conversation deleted.');
+      expect(dialog()).toBeNull();
+    });
+
+    it('a failure is a toast, and the conversation stays', async () => {
+      api.remove = () => throwError(() => new HttpErrorResponse({ status: 0 }));
+      await askToDelete();
+
+      dialogButton(/Yes, delete/).click();
+      await settle();
+      await settle();
+
+      expect(TestBed.inject(ChatStore).conversations()).toHaveLength(2);
+      expect(toastOf('conversation-delete-one')?.type).toBe('error');
+    });
   });
 
   it('keeps separate drafts when switching conversations', async () => {

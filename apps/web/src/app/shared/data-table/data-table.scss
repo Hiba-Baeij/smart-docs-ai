@@ -1,0 +1,226 @@
+:host {
+  display: block;
+  container: data-table / inline-size;
+}
+
+.toolbar:empty {
+  display: none;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-block-end: 0.85rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Scrolls sideways when the columns do not fit; never vertically (the page scrolls). */
+.frame {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--surface);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 0.8rem 1rem;
+  border-block-end: 1px solid var(--border);
+  text-align: start;
+  vertical-align: middle;
+}
+
+th {
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+tbody tr:last-child td {
+  border-block-end: 0;
+}
+
+.align-end {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.align-center {
+  text-align: center;
+}
+
+.sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: -0.3rem -0.45rem;
+  padding: 0.3rem 0.45rem;
+  border: 0;
+  border-radius: 0.45rem;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+
+  &:hover,
+  &.sorted {
+    color: var(--text);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 1px;
+  }
+}
+
+.sort-icon {
+  width: 0.9rem;
+  height: 0.9rem;
+
+  &.idle {
+    opacity: 0.45;
+  }
+}
+
+.data-row {
+  animation: row-in 0.3s ease-out both;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background: var(--surface-raised);
+  }
+}
+
+:host(.refreshing) tbody {
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.cell-link {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+}
+
+.actions-col {
+  width: 3.5rem;
+  padding-block: 0.25rem;
+  text-align: end;
+}
+
+.paginator {
+  margin-block-start: 0.5rem;
+  border-radius: 0.75rem;
+  background: transparent;
+}
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* Narrow containers: each row becomes a card with label/value lines. */
+@container data-table (max-width: 640px) {
+  .frame {
+    border: 0;
+    background: none;
+  }
+
+  thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  table,
+  tbody,
+  tr,
+  td {
+    display: block;
+  }
+
+  tbody {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  tr {
+    position: relative;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    background: var(--surface);
+  }
+
+  td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.3rem 0;
+    border: 0;
+    text-align: end;
+  }
+
+  td[data-label]::before {
+    content: attr(data-label);
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: start;
+  }
+
+  td.primary {
+    display: block;
+    padding-block-end: 0.5rem;
+    padding-inline-end: 2.75rem;
+    font-size: 1.05rem;
+    text-align: start;
+  }
+
+  .hide-narrow {
+    display: none;
+  }
+
+  .actions-col {
+    position: absolute;
+    inset-block-start: 0.35rem;
+    inset-inline-end: 0.35rem;
+    width: auto;
+    padding: 0;
+  }
+}

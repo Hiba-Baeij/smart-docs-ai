@@ -85,36 +85,13 @@
           <h2 dir="auto">{{ selectedTitle() }}</h2>
           <p>{{ locale.t('chat.threadSub') }}</p>
         </div>
-        <button type="button" class="icon-btn delete" (click)="askToDelete()">
+        <button type="button" class="icon-btn delete" [disabled]="removal.pending()" (click)="askToDelete()">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
           </svg>
           <span class="sr-only">{{ locale.t('chat.deleteConversation') }}</span>
         </button>
       </div>
-      @if (confirming() === store.selectedId()) {
-        <div
-          role="alertdialog"
-          [attr.aria-label]="locale.t('chat.deleteConversation')"
-          class="confirm"
-          (keydown.escape)="cancelDelete()"
-        >
-          <p>{{ locale.t('chat.deletePrompt') }}</p>
-          <div class="confirm-actions">
-            <button type="button" (click)="cancelDelete()">
-              {{ locale.t('docs.detail.cancel') }}
-            </button>
-            <button
-              type="button"
-              class="danger"
-              [disabled]="!!store.deletingId()"
-              (click)="deleteSelected()"
-            >
-              {{ locale.t('chat.yesDelete') }}
-            </button>
-          </div>
-        </div>
-      }
       <div
         #log
         class="message-log"

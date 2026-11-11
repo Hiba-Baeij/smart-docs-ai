@@ -3,9 +3,10 @@ import { RouterOutlet } from '@angular/router';
 import { NgxSonnerToaster } from 'ngx-sonner';
 import { LocaleService } from './core/i18n/locale.service';
 import { ThemeService } from './core/presentation/theme.service';
+import { TopProgress } from './core/loading/top-progress';
 
 @Component({
-  imports: [RouterOutlet, NgxSonnerToaster],
+  imports: [RouterOutlet, NgxSonnerToaster, TopProgress],
   selector: 'app-root',
   styleUrl: './app.scss',
   templateUrl: './app.html',

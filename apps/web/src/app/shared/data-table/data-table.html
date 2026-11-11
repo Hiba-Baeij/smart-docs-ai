@@ -1,0 +1,126 @@
+<div class="toolbar"><ng-content select="[tableToolbar]" /></div>
+
+@switch (view()) {
+  @case ('error') {
+    <app-error-banner [error]="error()!" (retry)="retry.emit()" />
+  }
+  @case ('empty') {
+    @if (emptyDef(); as empty) {
+      <ng-container [ngTemplateOutlet]="empty.template" />
+    } @else {
+      <app-empty-state [message]="emptyMessage() ?? locale.t('table.empty')" />
+    }
+  }
+  @default {
+    <div class="frame">
+      @if (view() === 'loading') {
+        <p class="loading visually-hidden" role="status">{{ locale.t('table.loading') }}</p>
+      }
+      <table [attr.aria-busy]="loading() ? 'true' : null">
+        <caption class="visually-hidden">{{ caption() }}</caption>
+        <thead>
+          <tr>
+            @for (column of columns(); track column.key) {
+              <th
+                scope="col"
+                [class]="'align-' + align(column)"
+                [class.hide-narrow]="column.hideWhenNarrow"
+                [style.width]="column.width"
+                [attr.aria-sort]="column.sortable ? sortState(column) : null"
+              >
+                @if (column.sortable) {
+                  <button
+                    type="button"
+                    class="sort"
+                    [class.sorted]="sortState(column) !== 'none'"
+                    [attr.aria-label]="locale.t('table.sortBy', { column: column.header })"
+                    (click)="toggleSort(column)"
+                  >
+                    {{ column.header }}
+                    @switch (sortState(column)) {
+                      @case ('ascending') { <svg lucideArrowUp class="sort-icon" aria-hidden="true"></svg> }
+                      @case ('descending') { <svg lucideArrowDown class="sort-icon" aria-hidden="true"></svg> }
+                      @default { <svg lucideChevronsUpDown class="sort-icon idle" aria-hidden="true"></svg> }
+                    }
+                  </button>
+                } @else {
+                  {{ column.header }}
+                }
+              </th>
+            }
+            @if (actions().length > 0) {
+              <th scope="col" class="actions-col">
+                <span class="visually-hidden">{{ locale.t('table.actions') }}</span>
+              </th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @if (view() === 'loading') {
+            @for (skeleton of skeletonRows(); track $index) {
+              <tr class="skeleton-row" aria-hidden="true">
+                @for (column of columns(); track column.key) {
+                  <td [class.hide-narrow]="column.hideWhenNarrow">
+                    <app-skeleton [width]="column.primary ? '70%' : '55%'" />
+                  </td>
+                }
+                @if (actions().length > 0) {
+                  <td class="actions-col"></td>
+                }
+              </tr>
+            }
+          } @else {
+            @for (item of viewRows(); track item.key) {
+              <tr class="data-row" [style.animation-delay.ms]="item.index < 10 ? item.index * 30 : 0">
+                @for (column of columns(); track column.key) {
+                  <td
+                    [class]="'align-' + align(column)"
+                    [class.primary]="column.primary"
+                    [class.hide-narrow]="column.hideWhenNarrow"
+                    [attr.data-label]="column.primary ? null : column.header"
+                  >
+                    @switch (column.type) {
+                      @case ('custom') {
+                        @if (cellTemplates().get(column.key); as cell) {
+                          <ng-container
+                            [ngTemplateOutlet]="cell"
+                            [ngTemplateOutletContext]="{ $implicit: item.row, index: item.index }"
+                          />
+                        }
+                      }
+                      @case ('link') {
+                        <a class="cell-link" dir="auto" [routerLink]="link(column, item.row)">{{ cellText(column, item.row) }}</a>
+                      }
+                      @default {
+                        <span dir="auto">{{ cellText(column, item.row) }}</span>
+                      }
+                    }
+                  </td>
+                }
+                @if (actions().length > 0) {
+                  <td class="actions-col">
+                    <app-menu [label]="item.menuLabel" [items]="item.menu" />
+                  </td>
+                }
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (showPaginator()) {
+      <mat-paginator
+        class="paginator"
+        [attr.aria-label]="locale.t('table.pagination')"
+        [length]="total() ?? 0"
+        [pageIndex]="page() - 1"
+        [pageSize]="pageSize()"
+        [pageSizeOptions]="pageSizeOptions()"
+        [hidePageSize]="pageSizeOptions().length === 0"
+        [showFirstLastButtons]="true"
+        (page)="onPage($event)"
+      />
+    }
+  }
+}

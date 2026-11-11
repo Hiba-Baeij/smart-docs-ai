@@ -130,6 +130,21 @@ describe('DocumentUpload', () => {
       expect(q<HTMLProgressElement>('progress')!.value).toBe(80);
     });
 
+    it('updates the one upload toast with the percentage in 10% steps, then says it is processing', () => {
+      const toast = () => toastState.toasts().filter((item) => item.id === 'document-upload');
+      choose('terms.pdf');
+
+      current().next(progress(23, 100));
+      expect(toast()[0].title).toBe('Uploading terms.pdf… 23%');
+      current().next(progress(27, 100)); // same 10% step: no new text
+      expect(toast()[0].title).toBe('Uploading terms.pdf… 23%');
+      current().next(progress(100, 100));
+
+      expect(toast()).toHaveLength(1);
+      expect(toast()[0].title).toBe('Processing terms.pdf…');
+      expect(toast()[0].type).toBe('loading');
+    });
+
     it('ignores a second file chosen while one is still being sent', () => {
       choose('first.pdf');
 

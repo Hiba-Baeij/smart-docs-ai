@@ -1,4 +1,5 @@
 @use 'tailwindcss';
+@use './styles/material-theme';
 
 /* Readex Pro (SIL OFL 1.1), self-hosted: one family for Arabic and Latin. */
 @font-face {
@@ -46,6 +47,9 @@
   --text: hsl(225 28% 14%);
   --text-muted: hsl(222 12% 36%);
   --border: hsl(220 18% 80%);
+  /* The edge of an input or button must reach 3:1 against its surface (WCAG 1.4.11); --border is
+     for decoration (cards, dividers) and does not. */
+  --border-control: hsl(220 12% 50%);
   --accent: hsl(220 82% 40%);
   --accent-strong: hsl(220 88% 32%);
   --focus: hsl(194 90% 38%);
@@ -69,6 +73,7 @@
   --text: hsl(210 32% 95%);
   --text-muted: hsl(218 19% 71%);
   --border: hsl(225 19% 34%);
+  --border-control: hsl(225 14% 52%);
   --accent: hsl(187 88% 62%);
   --accent-strong: hsl(187 92% 73%);
   --focus: hsl(185 100% 69%);
@@ -154,5 +159,20 @@ button:active:not(:disabled) {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+}
+
+/* Route changes cross-fade (Router `withViewTransitions`). The browser animates the root snapshot
+   pair; a short fade keeps it calm, and reduced-motion users get an instant swap. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.18s;
+  animation-timing-function: ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }

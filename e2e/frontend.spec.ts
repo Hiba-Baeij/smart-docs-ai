@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import type { DocumentSummary, Message, SourceReference } from '@smartdocs/contracts';
+import { signOut } from './support';
 
 const fixture = (name: string) => join(__dirname, '..', 'apps', 'api', 'test', 'fixtures', name);
 const files = ['text-3-pages.pdf', 'headings.docx', 'budget.xlsx'] as const;
@@ -93,7 +94,7 @@ test('protected deep link restores a cookie session after login and reload', asy
   await expect(page).toHaveURL(/\/documents$/);
   await expect(page.getByRole('heading', { name: 'Documents', exact: true })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Sign out' }).click();
+  await signOut(page);
   await expect(page).toHaveURL(/\/login$/);
   await page.goto('/documents');
   await expect(page).toHaveURL(/\/login\?returnUrl=%2Fdocuments/);
@@ -142,7 +143,7 @@ test('long chat opens at recent messages, loads older ones, and recovers a faile
 
   await page.goto('/chat');
   await page.getByRole('button', { name: 'Long thread' }).click();
-  const bubbles = page.locator('article.bubble');
+  const bubbles = page.locator('article.msg');
   await expect(bubbles).toHaveCount(50);
   await expect(bubbles.first()).toContainText('Message 51');
   await expect(bubbles.last()).toContainText('Message 100');
@@ -157,7 +158,7 @@ test('long chat opens at recent messages, loads older ones, and recovers a faile
   await page.getByRole('button', { name: 'Send', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Retry question' })).toBeVisible();
   await page.getByRole('button', { name: 'Retry question' }).click();
-  const lastAnswer = page.locator('article.bubble:not(.user)').last();
+  const lastAnswer = page.locator('article.msg:not(.me)').last();
   await expect(lastAnswer.locator('app-assistant-markdown p')).toHaveText('ليس لدي معلومات كافية للإجابة عن سؤالك.');
   await expect(lastAnswer.locator('.source-chip')).toHaveCount(0);
   expect(sends).toBe(2);

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
+import { signOut } from './support';
 
 /** The fixed answer when the evidence is not enough (docs/integration/api-contract.md). Exact, no extras. */
 const INSUFFICIENT_EVIDENCE = 'ليس لدي معلومات كافية للإجابة عن سؤالك.';
@@ -42,7 +43,8 @@ test('register, upload, ask with a citation, ask without evidence, sign out', as
   await test.step('upload a document and see it ready', async () => {
     await page.locator('input[type="file"]').setInputFiles(DOCUMENT);
 
-    await expect(page.getByText('headings.docx was uploaded.')).toBeVisible();
+    // The text is in the page and in the toast; the page's own status is what this step is about.
+    await expect(page.getByRole('main').getByText('headings.docx was uploaded.')).toBeVisible();
     const row = page.getByRole('row', { name: /headings\.docx/ });
     await expect(row).toContainText('Ready');
     await expect(row).toContainText('DOCX');
@@ -54,7 +56,7 @@ test('register, upload, ask with a citation, ask without evidence, sign out', as
     await page.locator('#question').fill('When are invoices due?');
     await page.locator('#question').press('Enter');
 
-    const answer = page.locator('article.bubble:not(.user)').last();
+    const answer = page.locator('article.msg:not(.me)').last();
     await expect(answer).toContainText('Invoices are due within 30 days');
     const source = answer.locator('a.source-chip');
     await expect(source).toHaveText(/headings\.docx/);
@@ -70,15 +72,30 @@ test('register, upload, ask with a citation, ask without evidence, sign out', as
     await page.locator('#question').fill('What is the airspeed velocity of an unladen swallow?');
     await page.locator('#question').press('Enter');
 
-    const bubbles = page.locator('article.bubble:not(.user)');
+    const bubbles = page.locator('article.msg:not(.me)');
     await expect(bubbles).toHaveCount(2);
     const fallback = bubbles.last();
     await expect(fallback.locator('p').first()).toHaveText(INSUFFICIENT_EVIDENCE);
     await expect(fallback.locator('a.source-chip, .source-chip')).toHaveCount(0);
   });
 
+  await test.step('delete the document from its row: a confirmation first, then a toast and an empty list', async () => {
+    await page.goto('/documents');
+    await page.getByRole('button', { name: 'Actions for headings.docx' }).click();
+    await page.getByRole('menuitem', { name: 'Delete this document' }).click();
+
+    // Nothing is deleted until the dialog is confirmed, and it starts on the safe choice.
+    const dialog = page.getByRole('alertdialog');
+    await expect(dialog).toContainText('headings.docx');
+    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused();
+    await dialog.getByRole('button', { name: 'Yes, delete it' }).click();
+
+    await expect(page.getByText('Document deleted.')).toBeVisible();
+    await expect(page.getByText('You have no documents yet')).toBeVisible();
+  });
+
   await test.step('sign out, and the protected pages are closed again', async () => {
-    await page.getByRole('button', { name: 'Sign out' }).click();
+    await signOut(page);
     await expect(page).toHaveURL(/\/login/);
 
     await page.goto('/chat');

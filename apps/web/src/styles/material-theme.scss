@@ -1,0 +1,93 @@
+@use '@angular/material' as mat;
+
+/*
+ * Angular Material theme (ADR-019).
+ *
+ * The app's CSS custom properties in `styles.scss` stay the single source of colour. Material
+ * gets a base M3 theme for structure, typography, and density. Its system colours are then pointed
+ * at our tokens, so light/dark switching (`data-theme`) themes Material with no extra code.
+ */
+html {
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$azure-palette,
+        theme-type: color-scheme,
+      ),
+      typography: (
+        plain-family: #{'Readex Pro', 'Segoe UI', Tahoma, Arial, sans-serif},
+        brand-family: #{'Readex Pro', 'Segoe UI', Tahoma, Arial, sans-serif},
+        bold-weight: 650,
+        medium-weight: 500,
+        regular-weight: 400,
+      ),
+      density: 0,
+    )
+  );
+
+  @include mat.theme-overrides(
+    (
+      primary: var(--accent),
+      on-primary: var(--surface),
+      primary-container: var(--accent-surface),
+      on-primary-container: var(--accent-strong),
+      secondary-container: var(--surface-muted),
+      on-secondary-container: var(--text),
+      error: var(--error),
+      on-error: var(--surface),
+      error-container: var(--error-surface),
+      on-error-container: var(--error),
+      surface: var(--surface),
+      on-surface: var(--text),
+      on-surface-variant: var(--text-muted),
+      surface-variant: var(--surface-muted),
+      surface-container-lowest: var(--surface),
+      surface-container-low: var(--surface-raised),
+      surface-container: var(--surface-raised),
+      surface-container-high: var(--surface-muted),
+      surface-container-highest: var(--surface-muted),
+      outline: var(--border),
+      outline-variant: var(--border),
+      inverse-surface: var(--text),
+      inverse-on-surface: var(--surface),
+      corner-extra-small: 0.25rem,
+      corner-small: 0.5rem,
+      corner-medium: 0.75rem,
+      corner-large: 1rem,
+      corner-extra-large: 1.25rem,
+    )
+  );
+}
+
+/* app-menu (shared/ui/menu): the panel renders in an overlay, outside the component's styles. */
+.app-menu-panel {
+  min-width: 12rem;
+
+  .mat-mdc-menu-item {
+    min-height: 2.75rem;
+    gap: 0.6rem;
+  }
+  .item-icon {
+    width: 1.1rem;
+    height: 1.1rem;
+    flex: none;
+    color: var(--text-muted);
+  }
+  .danger,
+  .danger .item-icon {
+    color: var(--error);
+  }
+}
+
+/* CDK's default 32% black barely shows on the dark theme; a deeper scrim with a light blur
+   separates a dialog from the page in both themes. */
+.cdk-overlay-dark-backdrop {
+  background: hsl(228 40% 6% / 0.55);
+  backdrop-filter: blur(2px);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .cdk-overlay-dark-backdrop {
+    backdrop-filter: none;
+  }
+}

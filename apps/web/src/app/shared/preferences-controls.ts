@@ -51,7 +51,7 @@ import { ThemeService } from '../core/presentation/theme.service';
     .preference-button {
       min-width: 2.75rem;
       min-height: 2.75rem;
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-control);
       border-radius: 0.75rem;
       background: var(--surface-raised);
       color: var(--text);

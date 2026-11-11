@@ -1,3 +1,4 @@
+import { Directionality } from '@angular/cdk/bidi';
 import { DOCUMENT } from '@angular/common';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { AVAILABLE_LOCALES, DEFAULT_LOCALE, LOCALES, type Locale, isLocale } from './locales';
@@ -12,6 +13,7 @@ const DIR_KEY = 'smartdocs.dir';
 @Injectable({ providedIn: 'root' })
 export class LocaleService {
   private readonly document = inject(DOCUMENT);
+  private readonly directionality = inject(Directionality);
   private readonly window = this.document.defaultView;
   private readonly _current = signal<Locale>(this.initialLocale());
   readonly current = this._current.asReadonly();
@@ -63,8 +65,15 @@ export class LocaleService {
   }
 
   private apply(locale: Locale): void {
+    const dir = LOCALES[locale].dir;
     this.document.documentElement.lang = locale;
-    this.document.documentElement.dir = LOCALES[locale].dir;
+    this.document.documentElement.dir = dir;
+    // CDK reads the page direction once, at start-up. Telling it here makes every overlay
+    // (dialog, menu, tooltip, paginator) follow a language switch without a reload.
+    if (this.directionality.value !== dir) {
+      this.directionality.valueSignal.set(dir);
+      this.directionality.change.emit(dir);
+    }
     try {
       // Also on start-up, so a language saved before this key existed gets its direction too.
       this.window?.localStorage.setItem(DIR_KEY, LOCALES[locale].dir);

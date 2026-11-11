@@ -1,0 +1,56 @@
+:host {
+  display: block;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-block-end: 0.75rem;
+}
+
+.search {
+  flex: 1;
+}
+
+.counter {
+  min-width: 4.5rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  text-align: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.text {
+  position: relative;
+  max-height: 26rem;
+  margin: 0;
+  padding: 1rem;
+  overflow: auto;
+  border-radius: 0.75rem;
+  background: var(--surface-raised);
+  font: inherit;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+mark {
+  padding: 0 0.1em;
+  border-radius: 0.25rem;
+  background: var(--warning-surface);
+  color: var(--warning);
+  outline: 1px solid var(--warning);
+  scroll-margin: 4rem;
+
+  &.active {
+    background: var(--warning);
+    color: var(--surface);
+    outline-color: var(--warning);
+  }
+}
+
+.link {
+  margin-block-start: 0.75rem;
+}

@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import type { DocumentPage, DocumentSummary, UserSummary } from '@smartdocs/contracts';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { AuthStore } from '../../core/auth/auth.store';
+import type { ListQuery } from '../../shared/data/types';
 import { DocumentsApi } from './documents.api';
 import { DocumentsStore, PAGE_SIZE } from './documents.store';
 
@@ -41,9 +42,9 @@ class FakeDocumentsApi {
   calls: { page: number; pageSize: number }[] = [];
   answer: (page: number) => Observable<DocumentPage> = () => of(page([]));
 
-  list(pageNumber: number, pageSize: number): Observable<DocumentPage> {
-    this.calls.push({ page: pageNumber, pageSize });
-    return this.answer(pageNumber);
+  list(query: ListQuery): Observable<DocumentPage> {
+    this.calls.push({ page: query.page, pageSize: query.pageSize });
+    return this.answer(query.page);
   }
 }
 

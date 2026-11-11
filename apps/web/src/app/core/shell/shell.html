@@ -8,12 +8,8 @@
   <div class="account">
     <app-preferences-controls />
     @if (auth.user(); as user) {
-      <!-- Interpolation escapes HTML: a name such as "<b>x</b>" is shown as text, never parsed. -->
-      <span class="user-name" dir="auto">{{ user.name }}</span>
+      <app-user-menu [user]="user" [signingOut]="signOutAction.pending()" (signOut)="signOut()" />
     }
-    <button type="button" class="sign-out" [disabled]="signingOut()" (click)="signOut()">
-      {{ signingOut() ? locale.t('nav.signingOut') : locale.t('nav.signOut') }}
-    </button>
   </div>
 </header>
 

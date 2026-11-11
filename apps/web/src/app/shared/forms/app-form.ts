@@ -2,6 +2,7 @@ import { Component, ElementRef, OnInit, computed, inject, input } from '@angular
 import { ReactiveFormsModule } from '@angular/forms';
 import { LocaleService } from '../../core/i18n/locale.service';
 import type { MessageKey } from '../../core/i18n/messages.en';
+import { Button } from '../ui/button/button';
 import { messageText } from './form-errors';
 import type { FormHandle } from './schema-form';
 
@@ -17,7 +18,7 @@ import type { FormHandle } from './schema-form';
  */
 @Component({
   selector: 'app-form',
-  imports: [ReactiveFormsModule],
+  imports: [Button, ReactiveFormsModule],
   styleUrl: './app-form.scss',
   template: `
     <form [formGroup]="form().group" (ngSubmit)="form().submit()" novalidate>
@@ -27,7 +28,7 @@ import type { FormHandle } from './schema-form';
 
       <ng-content />
 
-      <button type="submit" [disabled]="form().submitting()" [attr.aria-busy]="form().submitting()">
+      <button type="submit" appButton variant="primary" class="submit" [loading]="form().submitting()">
         {{ locale.t(form().submitting() ? pendingLabel() : submitLabel()) }}
       </button>
     </form>

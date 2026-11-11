@@ -1,54 +1,96 @@
-import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import type { DocumentDetail as DocumentDetailData } from '@smartdocs/contracts';
 import { firstValueFrom } from 'rxjs';
 import { AppError, toAppError } from '../../core/http/app-error';
-import { userMessage } from '../../core/http/user-message';
 import { LocaleService } from '../../core/i18n/locale.service';
-import { NotificationService } from '../../core/notifications/notification.service';
-import { EmptyState } from '../../shared/empty-state';
-import { ErrorBanner } from '../../shared/error-banner';
-import { StatusBadge } from '../../shared/status-badge';
+import {
+  LucideArrowLeft,
+  LucideCalendar,
+  LucideCaseSensitive,
+  LucideFileText,
+  LucideLayers,
+  LucideTrash2,
+  LucideTriangleAlert,
+} from '@lucide/angular';
+import {
+  Card,
+  CopyButton,
+  EmptyState,
+  ErrorBanner,
+  FileIcon,
+  Menu,
+  type MenuItem,
+  PageHeader,
+  Skeleton,
+  StatCard,
+  Tab,
+  Tabs,
+} from '@shared/ui';
+import { DocumentChunks } from './document-chunks';
+import { DocumentTextViewer } from './document-text-viewer';
+import { createDeleteDocument } from './delete-document';
+import { StatusBadge } from './document-status-badge';
 import { documentState, failedDocumentMessage, STALLED_MESSAGE } from './document-state';
 import { DocumentsApi } from './documents.api';
-import { DocumentsStore } from './documents.store';
 
 /** What this page is showing. `notFound` is an answer, not a failure: the document is simply not there. */
 export type DetailView = 'loading' | 'error' | 'notFound' | 'loaded';
 
-/** Characters of extracted text shown before "Show all": a long document is not put in the page whole. */
-export const TEXT_PREVIEW_CHARACTERS = 5_000;
-
 @Component({
-  imports: [EmptyState, ErrorBanner, RouterLink, StatusBadge],
+  imports: [
+    Card,
+    CopyButton,
+    DocumentChunks,
+    DocumentTextViewer,
+    EmptyState,
+    ErrorBanner,
+    FileIcon,
+    Menu,
+    PageHeader,
+    RouterLink,
+    Skeleton,
+    StatCard,
+    StatusBadge,
+    Tab,
+    Tabs,
+    LucideArrowLeft,
+    LucideCalendar,
+    LucideCaseSensitive,
+    LucideFileText,
+    LucideLayers,
+    LucideTriangleAlert,
+  ],
   selector: 'app-document-detail',
   styleUrl: './document-detail.scss',
   templateUrl: './document-detail.html',
 })
 export class DocumentDetail {
   private readonly api = inject(DocumentsApi);
-  private readonly store = inject(DocumentsStore);
   private readonly router = inject(Router);
-  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
-  private readonly injector = inject(Injector);
-  private readonly notifications = inject(NotificationService);
   protected readonly locale = inject(LocaleService);
 
-  protected formatDate(value: string): string {
-    return new Intl.DateTimeFormat(this.locale.current(), { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+  protected formatDay(value: string): string {
+    return new Intl.DateTimeFormat(this.locale.current(), { dateStyle: 'medium' }).format(new Date(value));
+  }
+
+  protected formatTime(value: string): string {
+    return new Intl.DateTimeFormat(this.locale.current(), { timeStyle: 'short' }).format(new Date(value));
+  }
+
+  protected formatNumber(value: number): string {
+    return new Intl.NumberFormat(this.locale.current()).format(value);
   }
 
   protected readonly view = signal<DetailView>('loading');
   protected readonly detail = signal<DocumentDetailData | null>(null);
   protected readonly error = signal<AppError | null>(null);
 
-  protected readonly confirming = signal(false);
-  protected readonly deleting = signal(false);
-  protected readonly deleteFailure = signal<string | null>(null);
   /** The document was found to be gone when we tried to delete it (deleted in another tab, say). */
   protected readonly alreadyGone = signal(false);
-  protected readonly showAllText = signal(false);
+  /** The selected tab: 0 is the text, 1 the chunks. */
+  protected readonly tab = signal(0);
 
   protected readonly state = computed(() => {
     const detail = this.detail();
@@ -65,13 +107,21 @@ export class DocumentDetail {
         return null;
     }
   });
-  protected readonly visibleText = computed(() => {
-    const text = this.detail()?.extractedText ?? '';
-    return this.showAllText() ? text : text.slice(0, TEXT_PREVIEW_CHARACTERS);
+  /** The page's ⋮ menu. Deleting is here, away from the content, and asks first. */
+  protected readonly menuItems = computed<MenuItem[]>(() => {
+    const doc = this.detail();
+    if (!doc) return [];
+    return [
+      {
+        id: 'delete',
+        label: this.locale.t('docs.detail.deleteAction'),
+        icon: LucideTrash2,
+        tone: 'danger',
+        disabled: this.remove.pending(),
+        run: () => this.askToDelete(doc),
+      },
+    ];
   });
-  protected readonly textIsCut = computed(
-    () => (this.detail()?.extractedText.length ?? 0) > TEXT_PREVIEW_CHARACTERS,
-  );
 
   /** Incremented per load; an answer for a document the page has moved away from is dropped. */
   private ticket = 0;
@@ -104,6 +154,7 @@ export class DocumentDetail {
         return;
       }
       this.detail.set(detail);
+      this.tab.set(detail.extractedText ? 0 : 1);
       this.view.set('loaded');
     } catch (failure) {
       if (ticket !== this.ticket) {
@@ -120,61 +171,26 @@ export class DocumentDetail {
     }
   }
 
-  protected askToDelete(): void {
-    this.deleteFailure.set(null);
-    this.confirming.set(true);
-    afterNextRender(() => this.host.nativeElement.querySelector<HTMLButtonElement>('.confirm button.delete')?.focus(), { injector: this.injector });
-  }
+  /**
+   * Delete: confirm dialog → request → toast (shared with the list). A double click cannot send
+   * two deletes: the mutation is busy from the first click until the end.
+   */
+  protected readonly remove = createDeleteDocument({
+    onDeleted: () => this.router.navigate(['/documents']),
+    onAlreadyGone: () => {
+      // Someone, most likely this user in another tab, already deleted it.
+      this.alreadyGone.set(true);
+      this.detail.set(null);
+      this.view.set('notFound');
+    },
+  });
 
-  protected cancelDelete(): void {
-    if (!this.deleting()) {
-      this.confirming.set(false);
-      afterNextRender(() => this.host.nativeElement.querySelector<HTMLButtonElement>('.danger button.delete')?.focus(), { injector: this.injector });
-    }
-  }
-
-  protected async confirmDelete(): Promise<void> {
-    const id = this.id;
-    if (id === null || this.deleting()) {
-      return; // a double click must not send two deletes
-    }
-    this.deleting.set(true);
-    this.deleteFailure.set(null);
-
-    try {
-      await firstValueFrom(this.api.remove(id));
-      this.store.forget(id);
-      this.notifications.success(`document-delete-${id}`, this.locale.t('docs.delete.success'));
-      await this.router.navigate(['/documents']);
-    } catch (failure) {
-      const error = toAppError(failure);
-      if (error.code === 'DOCUMENT_NOT_FOUND') {
-        // Someone, most likely this user in another tab, already deleted it. The outcome they
-        // asked for is the outcome they have, so this is not a crash and not an error to retry.
-        this.store.forget(id);
-        this.alreadyGone.set(true);
-        this.confirming.set(false);
-        this.detail.set(null);
-        this.view.set('notFound');
-        this.notifications.info(`document-delete-${id}`, this.locale.t('docs.delete.alreadyGone'));
-      } else {
-        this.deleteFailure.set(userMessage(error));
-        this.notifications.error(`document-delete-${id}`, userMessage(error));
-      }
-    } finally {
-      this.deleting.set(false);
-    }
-  }
-
-  protected toggleText(): void {
-    this.showAllText.update((value) => !value);
+  protected askToDelete(doc: DocumentDetailData): void {
+    void this.remove.run(doc);
   }
 
   private resetTransient(): void {
     this.error.set(null);
-    this.confirming.set(false);
-    this.deleteFailure.set(null);
     this.alreadyGone.set(false);
-    this.showAllText.set(false);
   }
 }

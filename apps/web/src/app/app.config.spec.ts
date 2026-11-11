@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { appConfig } from './app.config';
 import { AppError } from './core/http/app-error';
+import { LoadingService } from './core/loading/loading.service';
 
 /**
  * Tests the REAL application configuration, not a hand-built copy: a unit test that wires the
@@ -44,5 +45,18 @@ describe('appConfig', () => {
     );
 
     expect(received).toBeInstanceOf(AppError);
+  });
+
+  it('counts API requests in the global loading state through the real HttpClient setup', () => {
+    TestBed.configureTestingModule({
+      providers: [...appConfig.providers, provideHttpClientTesting()],
+    });
+    const loading = TestBed.inject(LoadingService);
+
+    TestBed.inject(HttpClient).get('/api/documents').subscribe();
+    expect(loading.active()).toBe(true);
+
+    TestBed.inject(HttpTestingController).expectOne('/api/documents').flush({});
+    expect(loading.active()).toBe(false);
   });
 });

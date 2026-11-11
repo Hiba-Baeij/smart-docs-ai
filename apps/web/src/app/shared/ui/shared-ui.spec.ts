@@ -1,10 +1,10 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { AppError } from '../core/http/app-error';
-import type { DocumentState } from '../features/documents/document-state';
-import { EmptyState } from './empty-state';
-import { ErrorBanner } from './error-banner';
-import { StatusBadge } from './status-badge';
+import { AppError } from '../../core/http/app-error';
+import type { DocumentState } from '../../features/documents/document-state';
+import { EmptyState } from './empty-state/empty-state';
+import { ErrorBanner } from './error-banner/error-banner';
+import { StatusBadge } from '../../features/documents/document-status-badge';
 
 @Component({
   imports: [ErrorBanner, EmptyState, StatusBadge],
@@ -91,16 +91,26 @@ describe('shared presentational components', () => {
 
   describe('StatusBadge', () => {
     it.each([
-      ['processing', 'Processing'],
-      ['stalled', 'Did not finish'],
-      ['completed', 'Ready'],
-      ['failed', 'Failed'],
-    ] as const)('writes %s as "%s"', (state, label) => {
+      ['processing', 'Processing', 'tone-info'],
+      ['stalled', 'Did not finish', 'tone-warning'],
+      ['completed', 'Ready', 'tone-success'],
+      ['failed', 'Failed', 'tone-danger'],
+    ] as const)('writes %s as "%s" with the %s colour', (state, label, tone) => {
       host.state.set(state);
       detect();
 
       expect(q('app-status-badge')?.textContent?.trim()).toBe(label);
-      expect(q('app-status-badge .badge')?.classList.contains(state)).toBe(true);
+      expect(q('app-status-badge app-badge')?.classList.contains(tone)).toBe(true);
+    });
+
+    it('pulses only while processing', () => {
+      host.state.set('processing');
+      detect();
+      expect(q('app-badge')?.classList.contains('pulse')).toBe(true);
+
+      host.state.set('completed');
+      detect();
+      expect(q('app-badge')?.classList.contains('pulse')).toBe(false);
     });
   });
 });

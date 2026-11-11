@@ -105,9 +105,20 @@ export class DocumentUpload {
         next: (httpEvent) => {
           if (httpEvent.type === HttpEventType.UploadProgress && httpEvent.total) {
             const percent = Math.min(100, Math.floor((httpEvent.loaded / httpEvent.total) * 100));
+            // The toast follows in steps of 10%, so it does not re-render on every chunk.
+            if (Math.floor(percent / 10) > Math.floor(this.progress() / 10) && percent < 100) {
+              this.notifications.loading(
+                UPLOAD_TOAST_ID,
+                `${this.locale.t('docs.upload.uploading')} ${file.name}… ${percent}%`,
+              );
+            }
             this.progress.set(percent);
-            if (percent >= 100) {
+            if (percent >= 100 && this.phase() !== 'processing') {
               this.phase.set('processing');
+              this.notifications.loading(
+                UPLOAD_TOAST_ID,
+                `${this.locale.t('docs.upload.processing')} ${file.name}…`,
+              );
             }
           } else if (httpEvent.type === HttpEventType.Response) {
             this.notifications.success(UPLOAD_TOAST_ID, `${file.name} ${this.locale.t('docs.upload.success')}`);

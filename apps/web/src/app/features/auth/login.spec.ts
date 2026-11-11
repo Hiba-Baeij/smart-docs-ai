@@ -304,7 +304,7 @@ describe('Login', () => {
       await fillAndSubmit();
 
       expect(button().disabled).toBe(false);
-      expect(button().getAttribute('aria-busy')).toBe('false');
+      expect(button().hasAttribute('aria-busy')).toBe(false); // idle: no aria-busy at all
     });
   });
 });

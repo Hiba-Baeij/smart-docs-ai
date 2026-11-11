@@ -39,25 +39,6 @@ nav a.active {
   gap: 0.75rem;
   margin-inline-start: auto;
 }
-.user-name {
-  max-width: 12rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 650;
-}
-.sign-out {
-  min-height: 2.75rem;
-  padding-inline: 0.9rem;
-  border: 1px solid var(--border);
-  border-radius: 0.7rem;
-  background: var(--surface-raised);
-  cursor: pointer;
-}
-.sign-out:disabled {
-  cursor: progress;
-  opacity: 0.6;
-}
 .shell-main {
   width: min(100%, 88rem);
   margin-inline: auto;
@@ -73,9 +54,6 @@ nav a.active {
   .account {
     flex-wrap: wrap;
     justify-content: flex-end;
-  }
-  .user-name {
-    display: none;
   }
   nav {
     order: 3;
