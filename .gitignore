@@ -12,3 +12,6 @@ coverage/
 !.env.example
 
 .DS_Store
+
+# Local MCP config: holds personal tokens.
+.mcp.json

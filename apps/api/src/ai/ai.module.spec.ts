@@ -5,7 +5,7 @@ import {
   DisabledEmbeddingProvider,
   EMBEDDING_PROVIDER,
 } from './embedding-provider';
-import { LLM_PROVIDER } from './llm-provider';
+import { LLM_FALLBACK_PROVIDER, LLM_PROVIDER } from './llm-provider';
 import { MockEmbeddingProvider } from './mock-embedding.provider';
 import { MockLlmProvider } from './mock-llm.provider';
 import { OpenAiCompatibleEmbeddingProvider } from './openai-compatible-embedding.provider';
@@ -35,6 +35,38 @@ describe('AiModule provider selection', () => {
         })
         .compile();
       expect(moduleRef.get(LLM_PROVIDER)).toBeInstanceOf(expectedClass);
+      await moduleRef.close();
+    },
+  );
+
+  it.each([
+    ['openai', 'other-model', true],
+    ['openai', 'test-model', false],
+    ['openai', '', false],
+    ['mock', 'other-model', false],
+  ] as const)(
+    'with %s and fallback model "%s", a fallback provider exists: %s',
+    async (kind, fallbackModel, expected) => {
+      const moduleRef = await Test.createTestingModule({
+        imports: [ConfigModule.forRoot({ ignoreEnvFile: true }), AiModule],
+      })
+        .overrideProvider(ConfigService)
+        .useValue({
+          get: (key: string) =>
+            (
+              ({
+                LLM_PROVIDER: kind,
+                LLM_BASE_URL: 'https://provider.example/v1',
+                LLM_API_KEY: 'private-key',
+                LLM_MODEL: 'test-model',
+                LLM_FALLBACK_MODEL: fallbackModel,
+              }) as Record<string, string>
+            )[key],
+        })
+        .compile();
+      const fallback = moduleRef.get<unknown>(LLM_FALLBACK_PROVIDER);
+      if (expected) expect(fallback).toBeInstanceOf(OpenAiCompatibleProvider);
+      else expect(fallback).toBeNull();
       await moduleRef.close();
     },
   );

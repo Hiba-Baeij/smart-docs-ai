@@ -5,7 +5,11 @@ import {
   EMBEDDING_PROVIDER,
   type EmbeddingProvider,
 } from './embedding-provider';
-import { LLM_PROVIDER } from './llm-provider';
+import {
+  LLM_FALLBACK_PROVIDER,
+  LLM_PROVIDER,
+  type LlmProvider,
+} from './llm-provider';
 import { MockEmbeddingProvider } from './mock-embedding.provider';
 import { MockLlmProvider } from './mock-llm.provider';
 import { OpenAiCompatibleEmbeddingProvider } from './openai-compatible-embedding.provider';
@@ -29,6 +33,21 @@ import { OpenAiCompatibleProvider } from './openai-compatible.provider';
       },
     },
     {
+      provide: LLM_FALLBACK_PROVIDER,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService): LlmProvider | null => {
+        if (config.get<string>('LLM_PROVIDER') !== 'openai') return null;
+        const model = config.get<string>('LLM_FALLBACK_MODEL');
+        // Same endpoint and key; only the model differs. Unset or equal: retry the same model.
+        if (!model || model === config.get<string>('LLM_MODEL')) return null;
+        const baseUrl = config.get<string>('LLM_BASE_URL');
+        const apiKey = config.get<string>('LLM_API_KEY');
+        if (!baseUrl || !apiKey)
+          throw new Error('OpenAI provider configuration is incomplete.');
+        return new OpenAiCompatibleProvider(baseUrl, apiKey, model);
+      },
+    },
+    {
       provide: EMBEDDING_PROVIDER,
       inject: [ConfigService],
       useFactory: (config: ConfigService): EmbeddingProvider => {
@@ -45,6 +64,6 @@ import { OpenAiCompatibleProvider } from './openai-compatible.provider';
       },
     },
   ],
-  exports: [LLM_PROVIDER, EMBEDDING_PROVIDER],
+  exports: [LLM_PROVIDER, LLM_FALLBACK_PROVIDER, EMBEDDING_PROVIDER],
 })
 export class AiModule {}

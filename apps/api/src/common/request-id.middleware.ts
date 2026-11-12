@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { NextFunction, Request, Response } from 'express';
+import { runWithDiagnostics } from './diagnostics/diagnostics';
 
 /**
  * Gives every request an id, returned in the `X-Request-Id` header and echoed in error
@@ -13,5 +14,6 @@ export function requestIdMiddleware(
   const requestId = randomUUID();
   response.locals.requestId = requestId;
   response.setHeader('X-Request-Id', requestId);
-  next();
+  // Every later step of this request notes into its own diagnostic trail.
+  runWithDiagnostics(next);
 }

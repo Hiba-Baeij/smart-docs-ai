@@ -5,6 +5,11 @@ import {
   type EmbeddingProvider,
 } from './embedding-provider';
 import { ProviderFailure } from './provider-failure';
+import {
+  noteBadResponse,
+  noteTransportFailure,
+  noteUpstreamError,
+} from './provider-diagnostics';
 
 type EmbeddingResponse = {
   data?: { index?: unknown; embedding?: unknown }[];
@@ -72,6 +77,7 @@ export class OpenAiCompatibleEmbeddingProvider implements EmbeddingProvider {
         signal: controller.signal,
       });
       if (!response.ok) {
+        await noteUpstreamError('embedding', this.model, response);
         throw new ProviderFailure(
           'AI_UNAVAILABLE',
           response.status >= 500,
@@ -84,9 +90,15 @@ export class OpenAiCompatibleEmbeddingProvider implements EmbeddingProvider {
       );
     } catch (error) {
       if (timedOut || (error instanceof Error && error.name === 'AbortError')) {
+        noteTransportFailure('embedding', this.model, error, true, timeoutMs);
         throw new ProviderFailure('AI_TIMEOUT', true);
       }
-      if (error instanceof ProviderFailure) throw error;
+      if (error instanceof ProviderFailure) {
+        if (error.upstreamStatus === undefined)
+          noteBadResponse('embedding', this.model, 'unexpected vectors');
+        throw error;
+      }
+      noteTransportFailure('embedding', this.model, error, false, timeoutMs);
       throw new ProviderFailure('AI_UNAVAILABLE', false);
     } finally {
       clearTimeout(timer);

@@ -68,9 +68,15 @@ export const envSchema = Joi.object({
     }),
   LLM_API_KEY: requiredWhenOpenAi,
   LLM_MODEL: requiredWhenOpenAi,
+  // Optional second model on the same endpoint, used for the one retry after a timeout or 5xx.
+  LLM_FALLBACK_MODEL: Joi.string().allow('').optional(),
   LLM_TEMPERATURE: Joi.number().min(0).max(0.2).default(0.2),
   LLM_MAX_OUTPUT_TOKENS: Joi.number().integer().min(1).default(700),
   LLM_TIMEOUT_MS: Joi.number().integer().min(1).default(20_000),
+
+  // Folder (relative to the API's working directory) for chat-errors.log and upload-errors.log.
+  // Empty: no failure log files.
+  ERROR_LOG_DIR: Joi.string().allow('').default('logs'),
 
   // Semantic retrieval (ADR-018). Empty with the openai provider: keyword-only retrieval.
   EMBEDDING_MODEL: Joi.string().allow('').optional(),

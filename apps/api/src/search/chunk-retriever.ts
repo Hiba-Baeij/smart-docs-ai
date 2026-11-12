@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { noteDiagnostic } from '../common/diagnostics/diagnostics';
 import { ConfigService } from '@nestjs/config';
 import {
   EMBEDDING_PROVIDER,
@@ -80,11 +81,13 @@ export class HybridChunkRetriever implements ChunkRetriever {
       this.search.search(input),
       this.semantic(input),
     ]);
-    this.logger.log({
+    const event = {
       event: 'retrieval',
       keywordHits: keyword.length,
       semanticHits: semantic?.length ?? null,
-    });
+    };
+    this.logger.log(event);
+    noteDiagnostic(event);
     if (!semantic) return keyword;
     return fuseByReciprocalRank([keyword, semantic], input.limit);
   }
@@ -105,10 +108,12 @@ export class HybridChunkRetriever implements ChunkRetriever {
       });
     } catch (error) {
       // The question text never enters the log, only that this path was skipped and why.
-      this.logger.warn({
+      const event = {
         event: 'semantic_retrieval_skipped',
         code: error instanceof Error && 'code' in error ? error.code : 'ERROR',
-      });
+      };
+      this.logger.warn(event);
+      noteDiagnostic(event);
       return null;
     }
   }

@@ -8,6 +8,8 @@ import {
 import { ApiError, ErrorCode } from '@smartdocs/contracts';
 import type { Request, Response } from 'express';
 import { AppError, errorStatus } from './app-error';
+import { describeError, diagnosticTrail } from '../diagnostics/diagnostics';
+import { FailureLog, failureChannelOf } from '../diagnostics/failure-log';
 
 type Mapped = Pick<ApiError, 'code' | 'message' | 'details'>;
 
@@ -21,6 +23,9 @@ type Mapped = Pick<ApiError, 'code' | 'message' | 'details'>;
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger('Errors');
+
+  /** Without a failure log (tests, the session-cookie filter) nothing is written to disk. */
+  constructor(private readonly failureLog?: FailureLog) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const context = host.switchToHttp();
@@ -47,7 +52,45 @@ export class AllExceptionsFilter implements ExceptionFilter {
       path: this.pathOf(request),
     };
 
+    this.recordFailure(request, body, exception);
     response.status(statusCode).json(body);
+  }
+
+  /**
+   * The full story of a failed chat or upload request, for the developer: the error with its
+   * stack, and the steps noted before it. The response body stays as safe as before.
+   */
+  private recordFailure(
+    request: Request,
+    body: ApiError,
+    exception: unknown,
+  ): void {
+    if (!this.failureLog?.enabled) return;
+    const channel = failureChannelOf(request.method, body.path);
+    if (!channel) return;
+    const file = (request as Request & { file?: Express.Multer.File }).file;
+    void this.failureLog.write(channel, {
+      time: body.timestamp,
+      requestId: body.requestId,
+      method: request.method,
+      path: body.path,
+      statusCode: body.statusCode,
+      code: body.code,
+      message: body.message,
+      details: body.details,
+      userId: (request as Request & { user?: { id: string } }).user?.id,
+      ...(file
+        ? {
+            file: {
+              originalName: file.originalname,
+              mimeType: file.mimetype,
+              sizeBytes: file.size,
+            },
+          }
+        : {}),
+      error: describeError(exception),
+      steps: diagnosticTrail(),
+    });
   }
 
   private map(exception: unknown): Mapped {

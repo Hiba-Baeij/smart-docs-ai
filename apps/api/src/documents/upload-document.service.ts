@@ -21,6 +21,10 @@ import {
   type ChunkDocument,
 } from '../chunking/chunk-document.token';
 import type { ChunkDraft } from '../chunking/chunker';
+import {
+  describeError,
+  noteDiagnostic,
+} from '../common/diagnostics/diagnostics';
 import { PrismaService } from '../prisma/prisma.service';
 import { toDocumentSummary } from './document-summary';
 import {
@@ -75,6 +79,11 @@ export class UploadDocumentService {
       },
     });
 
+    noteDiagnostic({
+      event: 'document_created',
+      documentId: document.id,
+      fileType,
+    });
     try {
       const { text, chunks } = await this.extractAndChunk(fileType, file);
       // Before the transaction: a network call must not hold a database connection open.
@@ -145,12 +154,23 @@ export class UploadDocumentService {
     return this.withinBudget(
       extractor
         .extract({ buffer: file.buffer, originalName: file.originalname })
-        .catch(() => {
+        .catch((error: unknown) => {
           this.logger.warn(`extraction failed (${fileType})`);
+          // The parser's own error is the real reason; the client only ever sees EXTRACTION_FAILED.
+          noteDiagnostic({
+            event: 'extraction_failed',
+            fileType,
+            parserError: describeError(error),
+          });
           throw new ExtractionFailedError();
         })
         .then((extracted) => {
           const document = toStorableDocument(extracted);
+          noteDiagnostic({
+            event: 'extracted',
+            fileType,
+            characters: document.text.length,
+          });
 
           if (document.text.trim() === '') {
             throw new EmptyExtractionError();
@@ -163,6 +183,7 @@ export class UploadDocumentService {
           }
 
           const chunks = this.chunkDocument(document, this.chunkConfig());
+          noteDiagnostic({ event: 'chunked', chunks: chunks.length });
           if (chunks.length === 0) {
             throw new EmptyExtractionError();
           }
@@ -184,11 +205,13 @@ export class UploadDocumentService {
         this.config.get<number>('EMBEDDING_TIMEOUT_MS', 10_000),
       );
     } catch (error) {
-      this.logger.warn({
+      const event = {
         event: 'chunk_embedding_skipped',
         chunks: chunks.length,
         code: error instanceof AppError ? error.code : 'ERROR',
-      });
+      };
+      this.logger.warn(event);
+      noteDiagnostic(event);
       return null;
     }
   }
@@ -225,10 +248,15 @@ export class UploadDocumentService {
         where: { id },
         data: { status: 'FAILED', errorCode },
       });
-    } catch {
+    } catch (error) {
       this.logger.error(
         `could not mark document ${id} as FAILED (${errorCode})`,
       );
+      noteDiagnostic({
+        event: 'mark_failed_failed',
+        documentId: id,
+        error: describeError(error),
+      });
     }
   }
 }

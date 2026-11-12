@@ -72,9 +72,11 @@ Expected:
 | `LLM_BASE_URL` | OpenAI-compatible endpoint | `https://api.openai.com/v1` |
 | `LLM_API_KEY` | provider key | never committed |
 | `LLM_MODEL` | model id | provider-specific |
+| `LLM_FALLBACK_MODEL` | optional second model for the one retry after a timeout or 5xx; empty = retry `LLM_MODEL` | empty |
 | `LLM_TEMPERATURE` | answer determinism | `0.2` |
 | `LLM_MAX_OUTPUT_TOKENS` | output ceiling | `700` |
 | `LLM_TIMEOUT_MS` | provider timeout | `20000` |
+| `ERROR_LOG_DIR` | folder for `chat-errors.log` and `upload-errors.log` (one JSON line per failed request: error, stack, steps); empty = off | `logs` |
 | `CHUNK_TARGET_WORDS` | new words per chunk before the next starts | `700` |
 | `CHUNK_OVERLAP_WORDS` | words repeated at the head of the next chunk (text and PDF) | `100` |
 | `CHUNK_MAX_WORDS` | no chunk is longer; must be at least target + overlap + 60 | `1200` |

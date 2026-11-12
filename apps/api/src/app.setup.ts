@@ -1,10 +1,11 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
 import { json } from 'express';
 import type { Express } from 'express';
 import { ValidationFailedError } from './common/errors/app-error';
 import { AllExceptionsFilter } from './common/errors/all-exceptions.filter';
+import { FailureLog } from './common/diagnostics/failure-log';
 import { requestIdMiddleware } from './common/request-id.middleware';
 import { toValidationDetails } from './common/validation/validation-details';
 
@@ -29,7 +30,14 @@ export function configureApp(app: INestApplication): void {
   app.setGlobalPrefix('api');
   app.use(requestIdMiddleware);
   app.use(cookieParser());
-  app.useGlobalFilters(new AllExceptionsFilter());
+  const failureLogger = new Logger('FailureLog');
+  app.useGlobalFilters(
+    new AllExceptionsFilter(
+      new FailureLog(config.get<string>('ERROR_LOG_DIR'), (message) =>
+        failureLogger.warn(message),
+      ),
+    ),
+  );
   app.useGlobalPipes(
     new ValidationPipe({
       // Unknown fields are rejected, not ignored: a stray `userId` is a client bug or an attack.

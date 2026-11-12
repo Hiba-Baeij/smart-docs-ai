@@ -1,9 +1,14 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { noteDiagnostic } from '../common/diagnostics/diagnostics';
 import { packEvidence } from '../ai/evidence';
 import { generateWithRetry } from '../ai/generate-with-retry';
 import { noEvidenceAnswer, policeAnswer } from '../ai/evidence-policy';
-import { LLM_PROVIDER, type LlmProvider } from '../ai/llm-provider';
+import {
+  LLM_FALLBACK_PROVIDER,
+  LLM_PROVIDER,
+  type LlmProvider,
+} from '../ai/llm-provider';
 import { buildPrompt, type ChatMessage } from '../ai/prompt';
 import { smallTalkReply } from '../ai/small-talk';
 import { PrismaService } from '../prisma/prisma.service';
@@ -22,6 +27,9 @@ export class RagAnswerStep implements AnswerStep {
     @Inject(LLM_PROVIDER) private readonly provider: LlmProvider,
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    @Optional()
+    @Inject(LLM_FALLBACK_PROVIDER)
+    private readonly fallback: LlmProvider | null = null,
   ) {}
 
   async answer({
@@ -73,7 +81,18 @@ export class RagAnswerStep implements AnswerStep {
         maxTokens: this.config.get<number>('LLM_MAX_OUTPUT_TOKENS', 700),
         timeoutMs: this.config.get<number>('LLM_TIMEOUT_MS', 20_000),
       },
-      this.logger,
+      // Each retry, failure and usage line also goes to the request's diagnostic trail.
+      {
+        log: (event) => {
+          this.logger.log(event);
+          noteDiagnostic(event);
+        },
+        warn: (event) => {
+          this.logger.warn(event);
+          noteDiagnostic(event);
+        },
+      },
+      { fallback: this.fallback },
     );
     return policeAnswer(result.text, packed.usedSources);
   }

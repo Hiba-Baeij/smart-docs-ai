@@ -67,6 +67,8 @@ describe('Error envelope (e2e)', () => {
           useValue: {
             getOrThrow: (key: string) =>
               key === 'CORS_ORIGIN' ? 'http://localhost:4200' : 102_400,
+            // Optional settings (ERROR_LOG_DIR): unset, so no failure log files.
+            get: () => undefined,
           },
         },
       ],

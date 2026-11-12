@@ -11,6 +11,9 @@ process.env.DATABASE_URL = getTestDatabaseUrl();
 // a provider adapter replace LLM_PROVIDER or EMBEDDING_PROVIDER with an override.
 process.env.LLM_PROVIDER = 'mock';
 
+// Many specs fail uploads and chat on purpose; they must not fill the developer's failure logs.
+process.env.ERROR_LOG_DIR = '';
+
 // Most specs log in or register many times within a minute; only the rate-limit spec
 // (which sets its own value before importing the app) exercises the real limit.
 process.env.AUTH_RATE_LIMIT = '1000';
