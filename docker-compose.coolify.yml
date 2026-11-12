@@ -41,6 +41,10 @@ services:
       LLM_MODEL: ${LLM_MODEL:?}
       LLM_FALLBACK_MODEL: ${LLM_FALLBACK_MODEL:-}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-}
+      ERROR_LOG_DIR: logs
+    volumes:
+      # chat-errors.log and upload-errors.log survive redeploys.
+      - smartdocs-logs:/app/apps/api/logs
 
   web:
     build:
@@ -53,3 +57,4 @@ services:
 
 volumes:
   smartdocs-db:
+  smartdocs-logs:

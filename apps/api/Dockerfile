@@ -24,6 +24,8 @@ COPY --from=build /app/apps/api/package.json /app/apps/api/prisma.config.ts apps
 COPY --from=build /app/apps/api/prisma apps/api/prisma
 COPY --from=build /app/apps/api/dist apps/api/dist
 WORKDIR /app/apps/api
+# The failure logs (ERROR_LOG_DIR=logs) are the only files the API writes; the rest stays root-owned.
+RUN mkdir -p logs && chown node:node logs
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
