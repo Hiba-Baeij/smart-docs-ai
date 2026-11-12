@@ -5,6 +5,7 @@ import { generateWithRetry } from '../ai/generate-with-retry';
 import { noEvidenceAnswer, policeAnswer } from '../ai/evidence-policy';
 import { LLM_PROVIDER, type LlmProvider } from '../ai/llm-provider';
 import { buildPrompt, type ChatMessage } from '../ai/prompt';
+import { smallTalkReply } from '../ai/small-talk';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CHUNK_RETRIEVER,
@@ -28,6 +29,9 @@ export class RagAnswerStep implements AnswerStep {
     conversationId,
     question,
   }: AnswerInput): Promise<Answer> {
+    // Greetings and pleasantries need no retrieval or model call.
+    const greeting = smallTalkReply(question);
+    if (greeting) return { content: greeting, sources: [] };
     const candidates = await this.retriever.retrieve({
       userId,
       question,
