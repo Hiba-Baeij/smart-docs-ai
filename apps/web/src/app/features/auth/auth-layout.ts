@@ -12,7 +12,7 @@ import { PreferencesControls } from '../../shared/preferences-controls';
   template: `
     <div class="auth-layout">
       <aside class="auth-story" aria-hidden="true">
-        <div class="story-brand">SmartDocs <span>AI</span></div>
+        <div class="story-brand"><img src="logo-mark.svg" alt="" width="36" height="36" /><div>SmartDocs <span>AI</span></div></div>
         <div class="story-copy">
           <span class="story-kicker">{{ locale.t('auth.hero.kicker') }}</span>
           <h2>{{ locale.t('auth.hero.title') }}</h2>
@@ -22,7 +22,7 @@ import { PreferencesControls } from '../../shared/preferences-controls';
       </aside>
       <main class="auth-page min-h-dvh">
         <div class="auth-top">
-          <a class="mobile-brand" routerLink="/login">SmartDocs AI</a><app-preferences-controls />
+          <a class="mobile-brand" routerLink="/login"><img src="logo-mark.svg" alt="" width="28" height="28" />SmartDocs AI</a><app-preferences-controls />
         </div>
         <div class="auth-card">
           <h1>{{ locale.t(heading()) }}</h1>

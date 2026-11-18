@@ -9,6 +9,9 @@
   box-shadow: 0 2px 14px hsl(220 30% 10% / 0.04);
 }
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
   font-size: 1.1rem;
   font-weight: 800;
   letter-spacing: -0.025em;

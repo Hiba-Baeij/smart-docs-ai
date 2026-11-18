@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 64" role="img" aria-label="SmartDocs AI">
+  <defs>
+    <linearGradient id="sdl-bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1546B8"/>
+      <stop offset="1" stop-color="#1FB5D4"/>
+    </linearGradient>
+    <linearGradient id="sdl-spark" x1="27" y1="35" x2="43" y2="51" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1546B8"/>
+      <stop offset="1" stop-color="#1FB5D4"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#sdl-bg)"/>
+  <path d="M20 12h16.5L47 22.5V48a4 4 0 0 1-4 4H20a4 4 0 0 1-4-4V16a4 4 0 0 1 4-4Z" fill="#fff"/>
+  <path d="M36.5 12v8.5a2 2 0 0 0 2 2H47Z" fill="#BFE6F5"/>
+  <rect x="21" y="25" width="15" height="3" rx="1.5" fill="#1546B8" opacity=".28"/>
+  <rect x="21" y="31" width="10" height="3" rx="1.5" fill="#1546B8" opacity=".28"/>
+  <path d="M35 35c.9 5.2 2.8 7.1 8 8-5.2.9-7.1 2.8-8 8-.9-5.2-2.8-7.1-8-8 5.2-.9 7.1-2.8 8-8Z" fill="url(#sdl-spark)"/>
+  <circle cx="24" cy="44" r="1.8" fill="#1FB5D4"/>
+  <!-- wordmark: currentColor follows the page text colour (light/dark) -->
+  <text x="78" y="42" font-family="Inter, 'Segoe UI', system-ui, -apple-system, sans-serif" font-size="30" font-weight="700" letter-spacing="-.5" fill="currentColor">SmartDocs<tspan dx="7" fill="#1FB5D4">AI</tspan></text>
+</svg>
